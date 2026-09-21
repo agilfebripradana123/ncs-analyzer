@@ -45,10 +45,10 @@ export default function AssessorDashboard() {
   ])
 
   const columns = [
-    { key: 'id', header: 'Assessment Code' },
+    { key: 'id', header: 'Kode Penilaian' },
     {
       key: 'employee',
-      header: 'Employee',
+      header: 'Karyawan',
       render: (row) => (
         <div>
           <div className="font-medium text-text-primary">{row.employee}</div>
@@ -61,10 +61,10 @@ export default function AssessorDashboard() {
       header: 'Status',
       render: (row) => <StatusBadge status={row.status} />,
     },
-    { key: 'findings', header: 'Findings' },
+    { key: 'findings', header: 'Temuan' },
     {
       key: 'risk',
-      header: 'Risk Score',
+      header: 'Skor Risiko',
       render: (row) =>
         row.risk ? (
           <div className="flex items-center gap-2">
@@ -79,50 +79,50 @@ export default function AssessorDashboard() {
 
   const actions = (row) => (
     <Button size="sm" variant="ghost" onClick={() => {}}>
-      View
+      Lihat
     </Button>
   )
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-3 md:gap-0 md:flex-row md:items-center md:justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-text-primary">
-            Assessment Workspace
+          <h1 className="text-xl md:text-2xl font-semibold text-text-primary">
+            Ruang Kerja Penilaian
           </h1>
         </div>
         <Button onClick={() => {}}>
           <Plus size={18} />
-          New Assessment
+          <span className="hidden sm:inline">Penilaian Baru</span>
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
         <Card>
-          <p className="text-sm text-text-secondary mb-1">Active Assessments</p>
+          <p className="text-sm text-text-secondary mb-1">Penilaian Aktif</p>
           <p className="text-3xl font-bold text-text-primary">{stats.active}</p>
         </Card>
         <Card>
-          <p className="text-sm text-text-secondary mb-1">Completed Assessments</p>
+          <p className="text-sm text-text-secondary mb-1">Penilaian Selesai</p>
           <p className="text-3xl font-bold text-text-primary">{stats.completed}</p>
         </Card>
         <Card>
-          <p className="text-sm text-text-secondary mb-1">Pending Consent</p>
+          <p className="text-sm text-text-secondary mb-1">Persetujuan Tertunda</p>
           <p className="text-3xl font-bold text-text-primary">{stats.pending}</p>
         </Card>
         <Card>
-          <p className="text-sm text-text-secondary mb-1">High Risk Findings</p>
+          <p className="text-sm text-text-secondary mb-1">Temuan Risiko Tinggi</p>
           <p className="text-3xl font-bold text-high-risk">{stats.highRisk}</p>
         </Card>
       </div>
 
-      <Card padding={false}>
-        <div className="p-6 border-b border-border">
-          <h2 className="text-lg font-semibold text-text-primary">
-            Active Assessments
-          </h2>
-        </div>
-        <div className="p-6">
+        <Card padding={false}>
+          <div className="p-4 md:p-6 border-b border-border">
+            <h2 className="text-base md:text-lg font-semibold text-text-primary">
+              Penilaian Aktif
+            </h2>
+          </div>
+          <div className="p-4 md:p-6">
           <DataTable columns={columns} data={activeAssessments} actions={actions} />
         </div>
       </Card>

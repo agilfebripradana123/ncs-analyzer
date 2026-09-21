@@ -6,7 +6,7 @@ export default function ErrorState({ message, onRetry }) {
       <p className="text-sm text-critical mb-4">{message || 'Terjadi kesalahan'}</p>
       {onRetry && (
         <Button variant="secondary" size="sm" onClick={onRetry}>
-          Retry
+          Coba Lagi
         </Button>
       )}
     </div>

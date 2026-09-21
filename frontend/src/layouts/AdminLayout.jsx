@@ -11,18 +11,18 @@ import Topbar from '../components/Topbar'
 
 const menuItems = [
   {
-    label: 'OVERVIEW',
+    label: 'IKHTISAR',
     items: [
-      { path: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+      { path: '/admin/dashboard', label: 'Dasbor', icon: <LayoutDashboard size={18} /> },
     ],
   },
   {
-    label: 'SYSTEM',
+    label: 'SISTEM',
     items: [
-      { path: '/admin/employees', label: 'Employees', icon: <Users size={18} /> },
-      { path: '/admin/users', label: 'Users', icon: <UserCog size={18} /> },
-      { path: '/admin/rules', label: 'Detection Rules', icon: <ShieldCheck size={18} /> },
-      { path: '/admin/audit-logs', label: 'Audit Logs', icon: <ScrollText size={18} /> },
+      { path: '/admin/employees', label: 'Karyawan', icon: <Users size={18} /> },
+      { path: '/admin/users', label: 'Pengguna', icon: <UserCog size={18} /> },
+      { path: '/admin/rules', label: 'Aturan Deteksi', icon: <ShieldCheck size={18} /> },
+      { path: '/admin/audit-logs', label: 'Log Audit', icon: <ScrollText size={18} /> },
     ],
   },
 ]
@@ -32,8 +32,8 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-background">
       <Sidebar items={menuItems} />
       <div className="md:ml-60">
-        <Topbar title="Admin" breadcrumb="NCS Analyzer / Admin" />
-        <main className="mt-16 p-6 lg:p-8 max-w-[1600px]">
+        <Topbar />
+        <main className="mt-16 p-4 md:p-6 lg:p-8 max-w-[1600px]">
           <Outlet />
         </main>
       </div>

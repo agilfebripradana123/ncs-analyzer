@@ -10,9 +10,9 @@ import LoadingState from '../../components/LoadingState'
 import EmptyState from '../../components/EmptyState'
 
 const STATUS_OPTIONS = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'consent', label: 'Consent' },
-  { value: 'active', label: 'Active' },
+  { value: 'pending', label: 'Tertunda' },
+  { value: 'consent', label: 'Persetujuan' },
+  { value: 'active', label: 'Aktif' },
 ]
 
 export default function AssessmentCreate() {
@@ -26,7 +26,7 @@ export default function AssessmentCreate() {
 
   useEffect(() => {
     api
-      .get('/api/admin/employees', { params: { page: 1, limit: 100 } })
+      .get('/admin/employees', { params: { page: 1, limit: 100 } })
       .then(({ data }) => {
         setEmployees((data.data || []).map((emp) => ({ value: emp.id, label: `${emp.name} (${emp.employee_code})` })))
       })
@@ -40,15 +40,15 @@ export default function AssessmentCreate() {
     e.preventDefault()
     setLoading(true)
     try {
-      const { data } = await api.post('/api/assessor/assessments', {
+      const { data } = await api.post('/assessor/assessments', {
         employee_id: employeeId,
         assessment_code: assessmentCode,
         status: assessmentStatus,
       })
-      toast.success('Assessment created')
+      toast.success('Penilaian dibuat')
       navigate(`/assessor/assessments/${data.data.id}`)
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal create assessment')
+      toast.error(err.response?.data?.message || 'Gagal membuat penilaian')
     } finally {
       setLoading(false)
     }
@@ -56,38 +56,38 @@ export default function AssessmentCreate() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-text-primary mb-6">
-        Assessment Workspace
+      <h1 className="text-xl md:text-2xl font-semibold text-text-primary mb-4 md:mb-6">
+        Ruang Kerja Penilaian
       </h1>
       <Card className="w-full max-w-lg">
-        <h2 className="text-lg font-semibold text-text-primary mb-6">
-          Create Assessment
+        <h2 className="text-base md:text-lg font-semibold text-text-primary mb-4 md:mb-6">
+          Buat Penilaian
         </h2>
         {employeesLoading ? (
           <LoadingState />
         ) : employees.length === 0 ? (
           <EmptyState
-            message="Tidak ada employees. Tambahkan employee terlebih dahulu."
-            action={<Button onClick={() => navigate('/assessor/employees')}>Manage Employees</Button>}
+            message="Tidak ada karyawan. Tambahkan karyawan terlebih dahulu."
+            action={<Button onClick={() => navigate('/assessor/employees')}>Kelola Karyawan</Button>}
           />
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Select
-              label="Employee"
+              label="Karyawan"
               options={employees}
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
               required
             />
             <Input
-              label="Assessment Code"
+              label="Kode Penilaian"
               placeholder="NCS-2026-XXXX"
               value={assessmentCode}
               onChange={(e) => setAssessmentCode(e.target.value)}
               required
             />
             <Select
-              label="Assessment Status"
+              label="Status Penilaian"
               options={STATUS_OPTIONS}
               value={assessmentStatus}
               onChange={(e) => setAssessmentStatus(e.target.value)}
@@ -98,10 +98,10 @@ export default function AssessmentCreate() {
                 variant="secondary"
                 onClick={() => navigate('/assessor/assessments')}
               >
-                Cancel
+                Batal
               </Button>
               <Button type="submit" loading={loading}>
-                Create
+                Buat
               </Button>
             </div>
           </form>

@@ -17,27 +17,27 @@ export default function ConsentPage() {
 
   useEffect(() => {
     api
-      .get(`/api/consent/${token}`)
+      .get(`/consent/${token}`)
       .then(({ data }) => setConsent(data.data))
       .catch((err) => {
-        setError(err.response?.data?.message || 'Consent tidak valid')
-        toast.error(err.response?.data?.message || 'Consent tidak valid')
+        setError(err.response?.data?.message || 'Persetujuan tidak valid')
+        toast.error(err.response?.data?.message || 'Persetujuan tidak valid')
       })
       .finally(() => setLoading(false))
   }, [token])
 
   const handleApprove = async () => {
     if (!agreed) {
-      toast.error('Anda harus membaca dan menyetujui consent')
+      toast.error('Anda harus membaca dan menyetujui persetujuan')
       return
     }
     setSubmitting(true)
     try {
-      await api.post(`/api/consent/${token}/approve`)
-      toast.success('Consent approved')
+      await api.post(`/consent/${token}/approve`)
+      toast.success('Persetujuan diterima')
       navigate('/consent/success')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal approve consent')
+      toast.error(err.response?.data?.message || 'Gagal menerima persetujuan')
     } finally {
       setSubmitting(false)
     }
@@ -46,11 +46,11 @@ export default function ConsentPage() {
   const handleDecline = async () => {
     setSubmitting(true)
     try {
-      await api.post(`/api/consent/${token}/decline`)
-      toast.success('Consent declined')
+      await api.post(`/consent/${token}/decline`)
+      toast.success('Persetujuan ditolak')
       navigate('/consent/declined')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal decline consent')
+      toast.error(err.response?.data?.message || 'Gagal menolak persetujuan')
     } finally {
       setSubmitting(false)
     }
@@ -68,37 +68,37 @@ export default function ConsentPage() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-2xl mx-auto py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-text-primary">NCS ANALYZER</h1>
-          <p className="text-sm text-text-secondary mt-1">Security Assessment</p>
+      <div className="max-w-2xl mx-auto py-4 md:py-8">
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-xl md:text-2xl font-bold text-text-primary">NCS ANALYZER</h1>
+          <p className="text-sm text-text-secondary mt-1">Penilaian Keamanan</p>
         </div>
 
         <Card className="mb-4">
-          <h2 className="text-lg font-semibold text-text-primary mb-4">
-            Assessment Information
+          <h2 className="text-base md:text-lg font-semibold text-text-primary mb-3 md:mb-4">
+            Informasi Penilaian
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div>
-              <span className="text-text-secondary">Employee:</span>{' '}
+              <span className="text-text-secondary">Karyawan:</span>{' '}
               <span className="font-medium text-text-primary">
                 {consent?.employee?.name || '-'}
               </span>
             </div>
             <div>
-              <span className="text-text-secondary">Department:</span>{' '}
+              <span className="text-text-secondary">Departemen:</span>{' '}
               <span className="font-medium text-text-primary">
                 {consent?.employee?.department || '-'}
               </span>
             </div>
             <div>
-              <span className="text-text-secondary">Assessor:</span>{' '}
+              <span className="text-text-secondary">Penilai:</span>{' '}
               <span className="font-medium text-text-primary">
                 {consent?.assessor?.name || '-'}
               </span>
             </div>
             <div>
-              <span className="text-text-secondary">Assessment Code:</span>{' '}
+              <span className="text-text-secondary">Kode Penilaian:</span>{' '}
               <span className="font-medium text-text-primary">
                 {consent?.assessment_code || '-'}
               </span>
@@ -106,43 +106,43 @@ export default function ConsentPage() {
           </div>
         </Card>
 
-        <Card className="mb-6">
-          <h2 className="text-lg font-semibold text-text-primary mb-4">
-            Consent & Privacy
+        <Card className="mb-4 md:mb-6">
+          <h2 className="text-base md:text-lg font-semibold text-text-primary mb-3 md:mb-4">
+            Persetujuan & Privasi
           </h2>
 
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-text-primary mb-2">
-              What will be assessed
+              Yang akan dinilai
             </h3>
             <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
-              <li>Installed applications on your device</li>
-              <li>System logs and security events</li>
-              <li>Network activity logs</li>
-              <li>Security configuration settings</li>
+              <li>Aplikasi yang terpasang di perangkat Anda</li>
+              <li>Log sistem dan peristiwa keamanan</li>
+              <li>Log aktivitas jaringan</li>
+              <li>Pengaturan konfigurasi keamanan</li>
             </ul>
           </div>
 
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-text-primary mb-2">
-              What will NOT be assessed
+              Yang TIDAK akan dinilai
             </h3>
             <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
-              <li>Personal files and documents</li>
-              <li>Browsing history and bookmarks</li>
-              <li>Email content and messages</li>
-              <li>Personal photos and media</li>
-              <li>Passwords and credentials</li>
+              <li>File dan dokumen pribadi</li>
+              <li>Riwayat penjelajahan dan penanda</li>
+              <li>Konten email dan pesan</li>
+              <li>Foto dan media pribadi</li>
+              <li>Kata sandi dan kredensial</li>
             </ul>
           </div>
 
           <p className="text-xs text-text-secondary">
-            Data collected will be used solely for security assessment purposes and
-            will be handled according to company privacy policies.
+            Data yang dikumpulkan hanya akan digunakan untuk tujuan penilaian keamanan dan
+            akan ditangani sesuai kebijakan privasi perusahaan.
           </p>
         </Card>
 
-        <Card className="mb-6">
+        <Card className="mb-4 md:mb-6">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
@@ -151,8 +151,8 @@ export default function ConsentPage() {
               className="mt-1"
             />
             <span className="text-sm text-text-primary">
-              I have read and understand the assessment scope and privacy policy. I
-              consent to participate in this security assessment.
+              Saya telah membaca dan memahami ruang lingkup penilaian serta kebijakan privasi. Saya
+              menyetujui untuk berpartisipasi dalam penilaian keamanan ini.
             </span>
           </label>
         </Card>
@@ -164,7 +164,7 @@ export default function ConsentPage() {
             loading={submitting}
             className="flex-1"
           >
-            Approve & Continue
+            Setuju & Lanjutkan
           </Button>
           <Button
             variant="secondary"
@@ -172,7 +172,7 @@ export default function ConsentPage() {
             loading={submitting}
             className="flex-1"
           >
-            Decline
+            Tolak
           </Button>
         </div>
       </div>

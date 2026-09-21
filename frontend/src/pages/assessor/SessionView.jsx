@@ -20,7 +20,7 @@ export default function SessionView() {
     setLoading(true)
     setError(null)
     try {
-      const { data } = await api.get(`/api/assessor/assessments/${id}/session`)
+      const { data } = await api.get(`/assessor/assessments/${id}/session`)
       setSession(data.data)
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal memuat session')
@@ -37,11 +37,11 @@ export default function SessionView() {
   const handleEndSession = async () => {
     setActionLoading(true)
     try {
-      await api.post(`/api/assessor/sessions/${session.id}/end`)
-      toast.success('Session ended')
+      await api.post(`/assessor/sessions/${session.id}/end`)
+      toast.success('Sesi diakhiri')
       fetchSession()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal end session')
+      toast.error(err.response?.data?.message || 'Gagal mengakhiri sesi')
     } finally {
       setActionLoading(false)
     }
@@ -52,16 +52,16 @@ export default function SessionView() {
     return (
       <EmptyState
         message={error}
-        action={<Button onClick={fetchSession}>Retry</Button>}
+        action={<Button onClick={fetchSession}>Coba Lagi</Button>}
       />
     )
-  if (!session) return <EmptyState message="Session tidak ditemukan" />
+  if (!session) return <EmptyState message="Sesi tidak ditemukan" />
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md text-center">
-        <h1 className="text-2xl font-semibold text-text-primary mb-2">
-          Assessment Session
+        <h1 className="text-xl md:text-2xl font-semibold text-text-primary mb-2">
+          Sesi Penilaian
         </h1>
         <p className="text-sm text-text-secondary mb-6">
           Assessment #{session.assessment_id}
@@ -69,8 +69,8 @@ export default function SessionView() {
 
         {session.token ? (
           <div className="flex flex-col items-center gap-4 mb-6">
-            <div className="p-6 bg-surface-secondary rounded-md border border-border">
-              <QRCodeSVG value={session.token} size={200} />
+            <div className="p-4 md:p-6 bg-surface-secondary rounded-md border border-border">
+              <QRCodeSVG value={session.token} size={160} className="md:w-[200px] md:h-[200px]" />
             </div>
             <p className="text-sm text-text-secondary">
               Scan untuk melanjutkan
@@ -87,13 +87,13 @@ export default function SessionView() {
         <div className="grid grid-cols-2 gap-4 mb-6 text-left">
           <div>
             <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">
-              Session Status
+              Status Sesi
             </p>
             <StatusBadge status={session.status} />
           </div>
           <div>
             <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">
-              QR Status
+              Status QR
             </p>
             <StatusBadge status={session.qr_status || 'active'} />
           </div>
@@ -101,7 +101,7 @@ export default function SessionView() {
 
         <div className="text-left text-sm space-y-2 mb-6">
           <div className="flex justify-between">
-            <span className="text-text-secondary">Started:</span>
+            <span className="text-text-secondary">Dimulai:</span>
             <span className="text-text-primary">
               {session.started_at
                 ? new Date(session.started_at).toLocaleString('id-ID')
@@ -109,7 +109,7 @@ export default function SessionView() {
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-text-secondary">Ended:</span>
+            <span className="text-text-secondary">Diakhiri:</span>
             <span className="text-text-primary">
               {session.ended_at
                 ? new Date(session.ended_at).toLocaleString('id-ID')
@@ -124,7 +124,7 @@ export default function SessionView() {
             onClick={handleEndSession}
             loading={actionLoading}
           >
-            End Session
+            Akhiri Sesi
           </Button>
         )}
       </Card>

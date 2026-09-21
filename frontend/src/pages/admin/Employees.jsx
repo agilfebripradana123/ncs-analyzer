@@ -1,5 +1,5 @@
-import { Plus } from 'lucide-react'
-import { useState } from 'react'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
@@ -32,13 +32,13 @@ export default function Employees() {
   const fetchEmployees = async (page = 1, q = '') => {
     setLoading(true)
     try {
-      const { data } = await api.get('/api/admin/employees', {
+      const { data } = await api.get('/admin/employees', {
         params: { page, search: q },
       })
       setEmployees(data.data)
       setMeta(data.meta)
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal memuat employees')
+      toast.error(err.response?.data?.message || 'Gagal memuat karyawan')
     } finally {
       setLoading(false)
     }
@@ -75,16 +75,16 @@ export default function Employees() {
     setFormLoading(true)
     try {
       if (editData) {
-        await api.put(`/api/admin/employees/${editData.id}`, form)
-        toast.success('Employee updated')
+        await api.put(`/admin/employees/${editData.id}`, form)
+        toast.success('Karyawan diperbarui')
       } else {
-        await api.post('/api/admin/employees', form)
-        toast.success('Employee created')
+        await api.post('/admin/employees', form)
+        toast.success('Karyawan ditambahkan')
       }
       setEditModal(false)
       fetchEmployees(meta?.current_page || 1, search)
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal menyimpan employee')
+      toast.error(err.response?.data?.message || 'Gagal menyimpan karyawan')
     } finally {
       setFormLoading(false)
     }
@@ -92,22 +92,22 @@ export default function Employees() {
 
   const handleDelete = async () => {
     try {
-      await api.delete(`/api/admin/employees/${deleteDialog.id}`)
-      toast.success('Employee deactivated')
+      await api.delete(`/admin/employees/${deleteDialog.id}`)
+      toast.success('Karyawan dinonaktifkan')
       setDeleteDialog(null)
       fetchEmployees(meta?.current_page || 1, search)
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal deactivate employee')
+      toast.error(err.response?.data?.message || 'Gagal menonaktifkan karyawan')
     }
   }
 
   if (loading && employees.length === 0) return <LoadingState />
 
   const columns = [
-    { key: 'employee_code', header: 'Employee Code' },
-    { key: 'name', header: 'Name' },
-    { key: 'department', header: 'Department' },
-    { key: 'position', header: 'Position' },
+    { key: 'employee_code', header: 'Kode Karyawan' },
+    { key: 'name', header: 'Nama' },
+    { key: 'department', header: 'Departemen' },
+    { key: 'position', header: 'Jabatan' },
     {
       key: 'status',
       header: 'Status',
@@ -117,36 +117,32 @@ export default function Employees() {
 
   const actions = (row) => (
     <>
-      <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>
-        Edit
+      <Button size="sm" variant="ghost" onClick={() => openEdit(row)} aria-label="Ubah">
+        <Pencil size={14} />
       </Button>
-      <Button
-        size="sm"
-        variant="danger"
-        onClick={() => setDeleteDialog(row)}
-      >
-        Disable
+      <Button size="sm" variant="danger" onClick={() => setDeleteDialog(row)} aria-label="Nonaktifkan">
+        <Trash2 size={14} />
       </Button>
     </>
   )
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-3 md:gap-0 md:flex-row md:items-center md:justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Employees</h1>
+          <h1 className="text-xl md:text-2xl font-semibold text-text-primary">Karyawan</h1>
           <p className="text-sm text-text-secondary mt-1">
-            Manage employee assessment subjects
+            Kelola subjek penilaian karyawan
           </p>
         </div>
         <Button onClick={openCreate}>
           <Plus size={18} />
-          Add Employee
+          <span className="hidden sm:inline">Tambah Karyawan</span>
         </Button>
       </div>
 
       {employees.length === 0 ? (
-        <EmptyState message="Tidak ada employees" />
+        <EmptyState message="Tidak ada karyawan" />
       ) : (
         <>
           <DataTable
@@ -163,11 +159,11 @@ export default function Employees() {
       <Modal
         open={editModal}
         onClose={() => setEditModal(false)}
-        title={editData ? 'Edit Employee' : 'Create Employee'}
+        title={editData ? 'Ubah Karyawan' : 'Tambah Karyawan'}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
-            label="Employee Code"
+            label="Kode Karyawan"
             value={form.employee_code}
             onChange={(e) =>
               setForm({ ...form, employee_code: e.target.value })
@@ -175,25 +171,25 @@ export default function Employees() {
             required
           />
           <Input
-            label="Name"
+            label="Nama"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
           />
           <Input
-            label="Department"
+            label="Departemen"
             value={form.department}
             onChange={(e) => setForm({ ...form, department: e.target.value })}
             required
           />
           <Input
-            label="Position"
+            label="Jabatan"
             value={form.position}
             onChange={(e) => setForm({ ...form, position: e.target.value })}
             required
           />
           <Button type="submit" loading={formLoading}>
-            Save
+            Simpan
           </Button>
         </form>
       </Modal>
@@ -202,8 +198,8 @@ export default function Employees() {
         open={!!deleteDialog}
         onClose={() => setDeleteDialog(null)}
         onConfirm={handleDelete}
-        title="Deactivate Employee"
-        message={`Deactivate ${deleteDialog?.name}?`}
+        title="Nonaktifkan Karyawan"
+        message={`Nonaktifkan ${deleteDialog?.name}?`}
       />
     </div>
   )

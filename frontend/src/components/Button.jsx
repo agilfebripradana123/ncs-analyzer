@@ -16,11 +16,11 @@ export default function Button({
     lg: 'px-5 py-2.5 text-sm',
   }
   const variants = {
-    primary: 'bg-primary border-primary text-white hover:bg-primary-dark',
+    primary: 'bg-[#2563EB] border-[#2563EB] text-white hover:bg-[#1D4ED8]',
     secondary:
-      'bg-surface-secondary border-border text-text-primary hover:bg-surface',
-    danger: 'bg-critical border-critical text-white hover:bg-critical/90',
-    ghost: 'bg-transparent border-transparent text-text-primary hover:bg-surface',
+      'bg-[#F5F7FB] border-[#E2E8F0] text-[#172033] hover:bg-white',
+    danger: 'bg-[#DC2626] border-[#DC2626] text-white hover:bg-red-700',
+    ghost: 'bg-transparent border-transparent text-[#172033] hover:bg-[#F5F7FB]',
   }
   return (
     <button

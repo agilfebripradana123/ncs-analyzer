@@ -35,16 +35,16 @@ export default function DataTable({
             <thead className="bg-surface-secondary border-b border-border">
               <tr>
                 {columns.map((col) => (
-                  <th
+                   <th
                     key={col.key}
-                    className="px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider"
-                  >
+                    className="px-3 py-2 sm:px-4 sm:py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider"
+                   >
                     {col.header}
                   </th>
                 ))}
                 {actions && (
-                  <th className="px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                    Actions
+                  <th className="px-3 py-2 sm:px-4 sm:py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    Aksi
                   </th>
                 )}
               </tr>
@@ -56,12 +56,12 @@ export default function DataTable({
                   className="hover:bg-primary/5 transition-colors"
                 >
                   {columns.map((col) => (
-                    <td key={col.key} className="px-4 py-3 text-sm text-text-primary">
+                    <td key={col.key} className="px-3 py-2 sm:px-4 sm:py-3 text-sm text-text-primary">
                       {col.render ? col.render(row) : row[col.key]}
                     </td>
                   ))}
                   {actions && (
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2 sm:px-4 sm:py-3">
                       <div className="flex items-center gap-2">{actions(row)}</div>
                     </td>
                   )}

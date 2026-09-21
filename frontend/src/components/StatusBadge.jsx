@@ -11,13 +11,13 @@ const VARIANTS = {
 }
 
 const LABELS = {
-  pending: 'Pending',
-  consent: 'Consent',
-  active: 'Active',
-  processing: 'Processing',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-  expired: 'Expired',
+  pending: 'Menunggu',
+  consent: 'Persetujuan',
+  active: 'Aktif',
+  processing: 'Diproses',
+  completed: 'Selesai',
+  cancelled: 'Dibatalkan',
+  expired: 'Kadaluarsa',
 }
 
 export default function StatusBadge({ status }) {

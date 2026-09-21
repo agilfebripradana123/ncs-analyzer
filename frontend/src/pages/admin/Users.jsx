@@ -1,5 +1,5 @@
-import { Plus } from 'lucide-react'
-import { useState } from 'react'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
@@ -8,18 +8,19 @@ import Select from '../../components/Select'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import DataTable from '../../components/DataTable'
+import StatusBadge from '../../components/StatusBadge'
 import LoadingState from '../../components/LoadingState'
 import EmptyState from '../../components/EmptyState'
 import Pagination from '../../components/Pagination'
 
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Admin' },
-  { value: 'assessor', label: 'Assessor' },
+  { value: 'assessor', label: 'Penilai' },
 ]
 
 const STATUS_OPTIONS = [
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
+  { value: 'active', label: 'Aktif' },
+  { value: 'inactive', label: 'Tidak Aktif' },
 ]
 
 export default function Users() {
@@ -42,11 +43,11 @@ export default function Users() {
   const fetchUsers = async (page = 1) => {
     setLoading(true)
     try {
-      const { data } = await api.get('/api/admin/users', { params: { page } })
+      const { data } = await api.get('/admin/users', { params: { page } })
       setUsers(data.data)
       setMeta(data.meta)
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal memuat users')
+      toast.error(err.response?.data?.message || 'Gagal memuat pengguna')
     } finally {
       setLoading(false)
     }
@@ -81,16 +82,16 @@ export default function Users() {
       const payload = { ...form }
       if (editData && !payload.password) delete payload.password
       if (editData) {
-        await api.put(`/api/admin/users/${editData.id}`, payload)
-        toast.success('User updated')
+        await api.put(`/admin/users/${editData.id}`, payload)
+        toast.success('Pengguna diperbarui')
       } else {
-        await api.post('/api/admin/users', payload)
-        toast.success('User created')
+        await api.post('/admin/users', payload)
+        toast.success('Pengguna ditambahkan')
       }
       setEditModal(false)
       fetchUsers(meta?.current_page || 1)
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal menyimpan user')
+      toast.error(err.response?.data?.message || 'Gagal menyimpan pengguna')
     } finally {
       setFormLoading(false)
     }
@@ -98,57 +99,57 @@ export default function Users() {
 
   const handleDelete = async () => {
     try {
-      await api.delete(`/api/admin/users/${deleteDialog.id}`)
-      toast.success('User deactivated')
+      await api.delete(`/admin/users/${deleteDialog.id}`)
+      toast.success('Pengguna dinonaktifkan')
       setDeleteDialog(null)
       fetchUsers(meta?.current_page || 1)
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal deactivate user')
+      toast.error(err.response?.data?.message || 'Gagal menonaktifkan pengguna')
     }
   }
 
   if (loading && users.length === 0) return <LoadingState />
 
   const columns = [
-    { key: 'name', header: 'Name' },
+    { key: 'name', header: 'Nama' },
     { key: 'email', header: 'Email' },
-    { key: 'role', header: 'Role' },
+    { key: 'role', header: 'Peran' },
     {
       key: 'status',
       header: 'Status',
       render: (row) => <StatusBadge status={row.status} />,
     },
-    { key: 'created_at', header: 'Created', render: (row) => new Date(row.created_at).toLocaleDateString('id-ID') },
+    { key: 'created_at', header: 'Dibuat', render: (row) => new Date(row.created_at).toLocaleDateString('id-ID') },
   ]
 
   const actions = (row) => (
     <>
-      <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>
-        Edit
+      <Button size="sm" variant="ghost" onClick={() => openEdit(row)} aria-label="Ubah">
+        <Pencil size={14} />
       </Button>
-      <Button size="sm" variant="danger" onClick={() => setDeleteDialog(row)}>
-        Delete
+      <Button size="sm" variant="danger" onClick={() => setDeleteDialog(row)} aria-label="Hapus">
+        <Trash2 size={14} />
       </Button>
     </>
   )
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-3 md:gap-0 md:flex-row md:items-center md:justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Users</h1>
+          <h1 className="text-xl md:text-2xl font-semibold text-text-primary">Pengguna</h1>
           <p className="text-sm text-text-secondary mt-1">
-            Manage Admin and Assessor accounts
+            Kelola akun Admin dan Penilai
           </p>
         </div>
         <Button onClick={openCreate}>
           <Plus size={18} />
-          Add User
+          <span className="hidden sm:inline">Tambah Pengguna</span>
         </Button>
       </div>
 
       {users.length === 0 ? (
-        <EmptyState message="Tidak ada users" />
+        <EmptyState message="Tidak ada pengguna" />
       ) : (
         <>
           <DataTable
@@ -165,11 +166,11 @@ export default function Users() {
       <Modal
         open={editModal}
         onClose={() => setEditModal(false)}
-        title={editData ? 'Edit User' : 'Create User'}
+        title={editData ? 'Ubah Pengguna' : 'Tambah Pengguna'}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
-            label="Name"
+            label="Nama"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
@@ -182,14 +183,14 @@ export default function Users() {
             required
           />
           <Input
-            label="Password"
+            label="Kata Sandi"
             type="password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required={!editData}
           />
           <Select
-            label="Role"
+            label="Peran"
             options={ROLE_OPTIONS}
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}
@@ -203,7 +204,7 @@ export default function Users() {
             required
           />
           <Button type="submit" loading={formLoading}>
-            Save
+            Simpan
           </Button>
         </form>
       </Modal>
@@ -212,8 +213,8 @@ export default function Users() {
         open={!!deleteDialog}
         onClose={() => setDeleteDialog(null)}
         onConfirm={handleDelete}
-        title="Deactivate User"
-        message={`Deactivate ${deleteDialog?.name}?`}
+        title="Nonaktifkan Pengguna"
+        message={`Nonaktifkan ${deleteDialog?.name}?`}
       />
     </div>
   )

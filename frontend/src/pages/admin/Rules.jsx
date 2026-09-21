@@ -1,5 +1,5 @@
-import { Plus } from 'lucide-react'
-import { useState } from 'react'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
@@ -14,10 +14,10 @@ import EmptyState from '../../components/EmptyState'
 import Pagination from '../../components/Pagination'
 
 const SEVERITY_OPTIONS = [
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
-  { value: 'critical', label: 'Critical' },
+  { value: 'low', label: 'Rendah' },
+  { value: 'medium', label: 'Sedang' },
+  { value: 'high', label: 'Tinggi' },
+  { value: 'critical', label: 'Kritis' },
 ]
 
 const TYPE_OPTIONS = [
@@ -26,8 +26,8 @@ const TYPE_OPTIONS = [
 ]
 
 const STATUS_OPTIONS = [
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
+  { value: 'active', label: 'Aktif' },
+  { value: 'inactive', label: 'Tidak Aktif' },
 ]
 
 export default function Rules() {
@@ -49,11 +49,11 @@ export default function Rules() {
   const fetchRules = async (page = 1) => {
     setLoading(true)
     try {
-      const { data } = await api.get('/api/admin/rules', { params: { page } })
+      const { data } = await api.get('/admin/rules', { params: { page } })
       setRules(data.data)
       setMeta(data.meta)
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal memuat rules')
+      toast.error(err.response?.data?.message || 'Gagal memuat aturan')
     } finally {
       setLoading(false)
     }
@@ -85,16 +85,16 @@ export default function Rules() {
     setFormLoading(true)
     try {
       if (editData) {
-        await api.put(`/api/admin/rules/${editData.id}`, form)
-        toast.success('Rule updated')
+        await api.put(`/admin/rules/${editData.id}`, form)
+        toast.success('Aturan diperbarui')
       } else {
-        await api.post('/api/admin/rules', form)
-        toast.success('Rule created')
+        await api.post('/admin/rules', form)
+        toast.success('Aturan ditambahkan')
       }
       setEditModal(false)
       fetchRules(meta?.current_page || 1)
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal menyimpan rule')
+      toast.error(err.response?.data?.message || 'Gagal menyimpan aturan')
     } finally {
       setFormLoading(false)
     }
@@ -102,12 +102,12 @@ export default function Rules() {
 
   const handleDelete = async () => {
     try {
-      await api.delete(`/api/admin/rules/${deleteDialog.id}`)
-      toast.success('Rule deactivated')
+      await api.delete(`/admin/rules/${deleteDialog.id}`)
+      toast.success('Aturan dinonaktifkan')
       setDeleteDialog(null)
       fetchRules(meta?.current_page || 1)
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal deactivate rule')
+      toast.error(err.response?.data?.message || 'Gagal menonaktifkan aturan')
     }
   }
 
@@ -121,12 +121,12 @@ export default function Rules() {
   }
 
   const columns = [
-    { key: 'name', header: 'Rule Name' },
-    { key: 'type', header: 'Type' },
-    { key: 'pattern', header: 'Pattern' },
+    { key: 'name', header: 'Nama Aturan' },
+    { key: 'type', header: 'Tipe' },
+    { key: 'pattern', header: 'Pola' },
     {
       key: 'severity',
-      header: 'Severity',
+      header: 'Tingkat Keparahan',
       render: (row) => (
         <span
           className={`px-2 py-0.5 text-xs font-medium rounded ${
@@ -144,7 +144,7 @@ export default function Rules() {
         </span>
       ),
     },
-    { key: 'risk_weight', header: 'Risk Weight' },
+    { key: 'risk_weight', header: 'Bobot Risiko' },
     {
       key: 'status',
       header: 'Status',
@@ -154,38 +154,34 @@ export default function Rules() {
 
   const actions = (row) => (
     <>
-      <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>
-        Edit
+      <Button size="sm" variant="ghost" onClick={() => openEdit(row)} aria-label="Ubah">
+        <Pencil size={14} />
       </Button>
-      <Button
-        size="sm"
-        variant="danger"
-        onClick={() => setDeleteDialog(row)}
-      >
-        Delete
+      <Button size="sm" variant="danger" onClick={() => setDeleteDialog(row)} aria-label="Hapus">
+        <Trash2 size={14} />
       </Button>
     </>
   )
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-3 md:gap-0 md:flex-row md:items-center md:justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-text-primary">
-            Detection Rules
+          <h1 className="text-xl md:text-2xl font-semibold text-text-primary">
+            Aturan Deteksi
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Manage assessment detection rules
+            Kelola aturan deteksi penilaian
           </p>
         </div>
         <Button onClick={openCreate}>
           <Plus size={18} />
-          Add Rule
+          <span className="hidden sm:inline">Tambah Aturan</span>
         </Button>
       </div>
 
       {rules.length === 0 ? (
-        <EmptyState message="Tidak ada rules" />
+        <EmptyState message="Tidak ada aturan" />
       ) : (
         <>
           <DataTable
@@ -202,24 +198,24 @@ export default function Rules() {
       <Modal
         open={editModal}
         onClose={() => setEditModal(false)}
-        title={editData ? 'Edit Rule' : 'Create Rule'}
+        title={editData ? 'Ubah Aturan' : 'Tambah Aturan'}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
-            label="Name"
+            label="Nama"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
           />
           <Select
-            label="Type"
+            label="Tipe"
             options={TYPE_OPTIONS}
             value={form.type}
             onChange={(e) => setForm({ ...form, type: e.target.value })}
             required
           />
           <Select
-            label="Severity"
+            label="Tingkat Keparahan"
             options={SEVERITY_OPTIONS}
             value={form.severity}
             onChange={(e) => setForm({ ...form, severity: e.target.value })}
@@ -233,7 +229,7 @@ export default function Rules() {
             required
           />
           <Button type="submit" loading={formLoading}>
-            Save
+            Simpan
           </Button>
         </form>
       </Modal>
@@ -242,8 +238,8 @@ export default function Rules() {
         open={!!deleteDialog}
         onClose={() => setDeleteDialog(null)}
         onConfirm={handleDelete}
-        title="Delete Rule"
-        message={`Delete ${deleteDialog?.name}?`}
+        title="Hapus Aturan"
+        message={`Hapus ${deleteDialog?.name}?`}
       />
     </div>
   )

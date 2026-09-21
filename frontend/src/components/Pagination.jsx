@@ -22,7 +22,7 @@ export default function Pagination({ meta, onPageChange }) {
   return (
     <div className="flex items-center justify-between mt-4">
       <span className="text-sm text-text-secondary">
-        Showing {meta.from || 0} to {meta.to || 0} of {meta.total} results
+        Menampilkan {meta.from || 0} sampai {meta.to || 0} dari {meta.total} hasil
       </span>
       <div className="flex items-center gap-1">
         <Button
@@ -31,7 +31,7 @@ export default function Pagination({ meta, onPageChange }) {
           disabled={current === 1}
           onClick={() => onPageChange(current - 1)}
         >
-          Previous
+          Sebelumnya
         </Button>
         {pages.map((page, i) =>
           page === '...' ? (
@@ -58,7 +58,7 @@ export default function Pagination({ meta, onPageChange }) {
           disabled={current === last}
           onClick={() => onPageChange(current + 1)}
         >
-          Next
+          Berikutnya
         </Button>
       </div>
     </div>

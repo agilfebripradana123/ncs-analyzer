@@ -12,19 +12,19 @@ import Topbar from '../components/Topbar'
 
 const menuItems = [
   {
-    label: 'OVERVIEW',
+    label: 'IKHTISAR',
     items: [
-      { path: '/assessor/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+      { path: '/assessor/dashboard', label: 'Dasbor', icon: <LayoutDashboard size={18} /> },
     ],
   },
   {
-    label: 'ASSESSMENT',
+    label: 'PENILAIAN',
     items: [
-      { path: '/assessor/assessments', label: 'Assessments', icon: <ClipboardCheck size={18} /> },
-      { path: '/assessor/employees', label: 'Employees', icon: <Users size={18} /> },
-      { path: '/assessor/sessions', label: 'Sessions', icon: <Monitor size={18} /> },
-      { path: '/assessor/findings', label: 'Findings', icon: <SearchCheck size={18} /> },
-      { path: '/assessor/reports', label: 'Reports', icon: <FileText size={18} /> },
+      { path: '/assessor/assessments', label: 'Penilaian', icon: <ClipboardCheck size={18} /> },
+      { path: '/assessor/employees', label: 'Karyawan', icon: <Users size={18} /> },
+      { path: '/assessor/sessions', label: 'Sesi', icon: <Monitor size={18} /> },
+      { path: '/assessor/findings', label: 'Temuan', icon: <SearchCheck size={18} /> },
+      { path: '/assessor/reports', label: 'Laporan', icon: <FileText size={18} /> },
     ],
   },
 ]
@@ -34,8 +34,8 @@ export default function AssessorLayout() {
     <div className="min-h-screen bg-background">
       <Sidebar items={menuItems} />
       <div className="md:ml-60">
-        <Topbar title="Assessor" breadcrumb="NCS Analyzer / Assessment" />
-        <main className="mt-16 p-6 lg:p-8 max-w-[1600px]">
+        <Topbar />
+        <main className="mt-16 p-4 md:p-6 lg:p-8 max-w-[1600px]">
           <Outlet />
         </main>
       </div>

@@ -28,28 +28,28 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md bg-surface border border-border rounded-md shadow-sm p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-text-primary">NCS Analyzer</h1>
-          <p className="text-sm text-text-secondary mt-1">Security Assessment</p>
+      <div className="w-full max-w-md bg-surface border border-border rounded-md shadow-sm p-6 md:p-8">
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-xl md:text-2xl font-bold text-text-primary">NCS Analyzer</h1>
+           <p className="text-sm text-text-secondary mt-1">Penilaian Keamanan</p>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <Input
-            label="Password"
-            type="password"
+           <Input
+             label="Email"
+             type="email"
+             value={email}
+             onChange={(e) => setEmail(e.target.value)}
+             required
+           />
+           <Input
+             label="Kata Sandi"
+             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
           <Button type="submit" loading={loading}>
-            Login
+             Masuk
           </Button>
         </form>
       </div>

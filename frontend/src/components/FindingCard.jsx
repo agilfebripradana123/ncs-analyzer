@@ -12,13 +12,13 @@ export default function FindingCard({ finding }) {
         </Badge>
       </div>
       <div className="flex items-center gap-2 text-xs text-text-secondary mb-3">
-        <span>Confidence: {finding.confidence}%</span>
+        <span>Keyakinan: {finding.confidence}%</span>
         <span>•</span>
-        <span>Detected: {finding.detectedAt}</span>
+        <span>Terdeteksi: {finding.detectedAt}</span>
       </div>
       <div className="text-sm text-text-secondary space-y-1">
-        <div>Type: {finding.type}</div>
-        <div>Value: {finding.value}</div>
+        <div>Tipe: {finding.type}</div>
+        <div>Nilai: {finding.value}</div>
       </div>
     </div>
   )

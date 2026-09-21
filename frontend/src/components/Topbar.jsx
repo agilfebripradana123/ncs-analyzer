@@ -2,28 +2,27 @@ import { Bell, ChevronDown, Search } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
-export default function Topbar({ title, breadcrumb }) {
+export default function Topbar() {
   const { user, logout } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
   return (
-    <header className="bg-surface border-b border-border h-16 fixed top-0 left-0 md:left-60 right-0 z-10 flex items-center justify-between px-6 pl-16 md:pl-6">
+    <header className="bg-surface border-b border-border h-16 fixed top-0 left-0 md:left-60 right-0 z-10 flex items-center justify-between px-4 pl-16 md:px-6 md:pl-6">
       <div>
-        {breadcrumb ? (
-          <div className="text-sm text-text-secondary">{breadcrumb}</div>
-        ) : null}
-        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
+        <h2 className="text-base md:text-lg font-semibold text-text-primary">
+          Halo, {user?.name || 'Pengguna'}
+        </h2>
       </div>
       <div className="flex items-center gap-4">
         <button
           className="p-2 hover:bg-surface-secondary rounded-md transition-colors"
-          aria-label="Search"
+          aria-label="Cari"
         >
           <Search size={20} className="text-text-secondary" />
         </button>
         <button
           className="p-2 hover:bg-surface-secondary rounded-md transition-colors"
-          aria-label="Notifications"
+          aria-label="Notifikasi"
         >
           <Bell size={20} className="text-text-secondary" />
         </button>
@@ -59,7 +58,7 @@ export default function Topbar({ title, breadcrumb }) {
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-surface-secondary transition-colors"
                 >
-                  Logout
+                  Keluar
                 </button>
               </div>
             </>

@@ -24,14 +24,14 @@ export default function Assessments() {
     setLoading(true)
     setError(null)
     try {
-      const { data } = await api.get('/api/assessor/assessments', {
+      const { data } = await api.get('/assessor/assessments', {
         params: { page, search: q },
       })
       setAssessments(data.data)
       setMeta(data.meta)
     } catch (err) {
-      setError(err.response?.data?.message || 'Gagal memuat assessments')
-      toast.error(err.response?.data?.message || 'Gagal memuat assessments')
+      setError(err.response?.data?.message || 'Gagal memuat penilaian')
+      toast.error(err.response?.data?.message || 'Gagal memuat penilaian')
     } finally {
       setLoading(false)
     }
@@ -42,10 +42,10 @@ export default function Assessments() {
   }, [])
 
   const columns = [
-    { key: 'assessment_code', header: 'Assessment' },
+    { key: 'assessment_code', header: 'Penilaian' },
     {
       key: 'employee',
-      header: 'Employee',
+      header: 'Karyawan',
       render: (row) => row.employee?.name || '-',
     },
     {
@@ -55,12 +55,12 @@ export default function Assessments() {
     },
     {
       key: 'risk',
-      header: 'Risk',
+      header: 'Risiko',
       render: (row) => row.risk_score ?? '-',
     },
     {
       key: 'date',
-      header: 'Date',
+      header: 'Tanggal',
       render: (row) =>
         row.created_at
           ? new Date(row.created_at).toLocaleDateString('id-ID')
@@ -74,7 +74,7 @@ export default function Assessments() {
       variant="ghost"
       onClick={() => navigate(`/assessor/assessments/${row.id}`)}
     >
-      View
+      Lihat
     </Button>
   )
 
@@ -85,29 +85,29 @@ export default function Assessments() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-3 md:gap-0 md:flex-row md:items-center md:justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Assessments</h1>
+          <h1 className="text-xl md:text-2xl font-semibold text-text-primary">Penilaian</h1>
         </div>
         <Button onClick={() => navigate('/assessor/assessments/create')}>
           <Plus size={18} />
-          New Assessment
+          <span className="hidden sm:inline">Penilaian Baru</span>
         </Button>
       </div>
 
       <div className="mb-4 max-w-sm">
         <Input
-          placeholder="Search assessment..."
+          placeholder="Cari penilaian..."
           value={search}
           onChange={(e) => handleSearch(e.target.value)}
         />
       </div>
 
       {error ? (
-        <EmptyState message={error} action={<Button onClick={() => fetchAssessments()}>Retry</Button>} />
+        <EmptyState message={error} action={<Button onClick={() => fetchAssessments()}>Coba Lagi</Button>} />
       ) : assessments.length === 0 && !loading ? (
         <Card>
-          <EmptyState message="Tidak ada assessments" />
+          <EmptyState message="Tidak ada penilaian" />
         </Card>
       ) : (
         <>
