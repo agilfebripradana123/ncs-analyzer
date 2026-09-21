@@ -1,0 +1,248 @@
+' ============================================================
+' NCS Analyzer — PlantUML Flowcharts
+' Render: https://www.plantuml.com/plantuml/uml/
+' Save as .puml / .pu and open in any PlantUML renderer
+' ============================================================
+
+' --- 1. High-Level System Flow (Activity Diagram) ---
+title NCS Analyzer — High-Level System Flow
+
+start
+
+:Admin / Asesor Login;
+:Select Employee;
+:Create Assessment;
+
+:Employee Consent;
+if (Consent Approved?) then (yes)
+  :Generate QR Code;
+  :Employee Scan QR;
+  :Validate Session Token;
+else (no / expired)
+  :Assessment Cancelled / Expired;
+  stop
+endif
+
+:Session Active;
+
+fork
+  :Visual Forensic (Screen Casting);
+  :OCR / AI Detection;
+  :Apply Visual Rules;
+fork again
+  :JSON Upload + Queue;
+  :Parse Activity Log;
+  :Apply Log Rules;
+end fork
+
+:Finding Integration;
+:Risk Score Engine;
+:Generate Risk Profile & Report;
+
+if (Retention Expired?) then (yes)
+  :Auto-Wipe Raw Data;
+else (no)
+  :Keep Raw Data;
+endif
+
+stop
+
+' --- 2. Assessment State Machine ---
+title Assessment Status State Machine
+
+[*] --> PENDING
+PENDING --> CONSENT : Consent required
+CONSENT --> ACTIVE : Employee approves
+ACTIVE --> PROCESSING : Session active + processing
+PROCESSING --> COMPLETED : All findings + risk calculated
+
+PENDING --> CANCELLED : Asesor cancels
+PENDING --> EXPIRED : Timeout before consent
+ACTIVE --> CANCELLED : Asesor stops session
+
+note right of EXPIRED
+  Can be revived only by
+  creating new assessment
+end note
+
+' --- 3. Session State Machine ---
+title Session Status State Machine
+
+[*] --> PENDING
+PENDING --> ACTIVE : QR scanned + token valid
+ACTIVE --> PROCESSING : Data flowing (OCR/JSON)
+PROCESSING --> COMPLETED : Assessment finished
+
+ACTIVE --> DISCONNECTED : Client disconnect
+DISCONNECTED --> ACTIVE : Auto-reconnect (within 30s)
+DISCONNECTED --> EXPIRED : Idle timeout (30 min)
+ACTIVE --> EXPIRED : Session timeout (4h)
+PENDING --> EXPIRED : QR token expired (10 min)
+ACTIVE --> CANCELLED : Manual stop
+
+' --- 4. Visual Forensic Flow ---
+title Visual Forensic Flow
+
+start
+
+:Screen Casting active;
+:Capture Screen Frame;
+
+fork
+  :OCR (extract text);
+  :AI Detection (object/logo/app);
+fork again
+end fork
+
+:Apply Detection Rules;
+
+if (Rule matched?) then (yes)
+  :Create Visual Finding;
+  :Record: type, value, confidence, severity, timestamp;
+else (no)
+  :Ignore frame;
+endif
+
+note bottom
+  Output stored in visual_findings table.
+  Confidence threshold configurable per rule.
+end note
+
+stop
+
+' --- 5. Data Forensic Flow ---
+title Data Forensic Flow
+
+start
+
+:Employee / Agent upload JSON;
+:Validate file (format + size);
+:Store file securely;
+:Dispatch ProcessActivityLog Job;
+
+:Parse JSON;
+:Save Activity Log records;
+:Run Detection Rules against logs;
+
+if (Rule matched?) then (yes)
+  :Create Log Finding;
+  :Link activity_log_id + rule_id;
+else (no)
+  :Ignore record;
+endif
+
+note bottom
+  Heavy JSON (>10MB) must NOT be processed
+  inline in HTTP request. Always via Queue.
+end note
+
+stop
+
+' --- 6. Risk Score Engine Flow ---
+title Risk Score Engine Flow
+
+start
+
+:Collect Visual Findings;
+:Collect Log Findings;
+
+:Apply severity weights;
+:Apply rule risk_weight;
+:Sum visual_score + log_score;
+
+if (total <= LOW threshold?) then (yes)
+  :Risk Level = LOW;
+elseif (total <= MEDIUM threshold?) then (yes)
+  :Risk Level = MEDIUM;
+else
+  :Risk Level = HIGH;
+endif
+
+:Store risk_scores record;
+:Broadcast RiskScoreCalculated event;
+
+note right
+  Thresholds configurable
+  berdasarkan metodologi resmi.
+end note
+
+stop
+
+' --- 7. Consent & QR Session Flow ---
+title Consent & QR Session Flow
+
+start
+
+:Assessment Created (status = consent);
+:Employee notified;
+:Employee reads consent document;
+
+if (Employee approves?) then (yes)
+  :Record Consent (version, timestamp, IP, signature);
+  :Create Session;
+  :Generate QR Code (token, expires 10 min);
+  :Employee scans QR;
+  :Validate session token;
+  :Session status = ACTIVE;
+else (no)
+  :Assessment = CANCELLED;
+  stop
+endif
+
+:Session monitoring;
+:Collect findings (visual + data);
+
+if (Session ended by asesor?) then (yes)
+  :Session = COMPLETED;
+else
+  :Session = EXPIRED / CANCELLED;
+endif
+
+stop
+
+' --- 8. Report & Auto-Wipe Flow ---
+title Report Generation & Raw Data Retention
+
+start
+
+:Assessment COMPLETED;
+
+fork
+  :Generate Report (PDF / JSON);
+  :Store report_path;
+fork again
+  :Start Retention Timer (30 days default);
+end fork
+
+:Broadcast AssessmentCompleted event;
+
+:Wait retention period;
+
+if (Retention expired?) then (yes)
+  :Dispatch WipeRawData Job;
+  :Delete raw JSON, frames, OCR/AI raw output;
+  :Keep: findings, risk_score, report;
+  :Audit log: Wipe Raw Data;
+else (no)
+  :Raw data retained securely;
+endif
+
+stop
+
+' --- Legend ---
+legend right
+  = Legend =
+  [*] = initial/final state
+  --> = transition
+  (yes)/(no) = decision branch
+  note = additional detail
+end legend
+
+' ============================================================
+' USAGE
+' ============================================================
+' 1. Save as flowchart.puml
+' 2. Render at https://www.plantuml.com/plantuml/uml/
+' 3. Or use VS Code PlantUML extension
+' 4. Or CLI: plantuml flowchart.puml
+' ============================================================
