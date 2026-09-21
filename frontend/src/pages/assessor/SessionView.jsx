@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
@@ -11,6 +12,7 @@ import EmptyState from '../../components/EmptyState'
 
 export default function SessionView() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -60,9 +62,14 @@ export default function SessionView() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md text-center">
-        <h1 className="text-xl md:text-2xl font-semibold text-text-primary mb-2">
-          Sesi Penilaian
-        </h1>
+        <div className="flex items-center gap-3 mb-6">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/assessor/dashboard')}>
+            <ArrowLeft size={16} /> Kembali
+          </Button>
+          <h1 className="text-xl md:text-2xl font-semibold text-text-primary mb-2">
+            Sesi Penilaian
+          </h1>
+        </div>
         <p className="text-sm text-text-secondary mb-6">
           Assessment #{session.assessment_id}
         </p>

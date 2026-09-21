@@ -1,12 +1,12 @@
-import { Plus } from 'lucide-react'
 import { useState } from 'react'
-import Button from '../../components/Button'
+import { useNavigate } from 'react-router-dom'
 import Card from '../../components/Card'
 import DataTable from '../../components/DataTable'
 import RiskBadge from '../../components/RiskBadge'
 import StatusBadge from '../../components/StatusBadge'
 
 export default function AssessorDashboard() {
+  const navigate = useNavigate()
   const [stats] = useState({
     active: 5,
     completed: 12,
@@ -16,28 +16,28 @@ export default function AssessorDashboard() {
 
   const [activeAssessments] = useState([
     {
-      id: 'NCS-2026-001',
+      id: 1,
       employee: 'Agil Febri',
-      department: 'IT Department',
-      status: 'active',
+      department: 'IT',
+      status: 'completed',
       findings: 4,
       risk: 62,
       riskLevel: 'HIGH',
     },
     {
-      id: 'NCS-2026-002',
+      id: 2,
       employee: 'Budi Santoso',
       department: 'Finance',
-      status: 'processing',
+      status: 'active',
       findings: 2,
       risk: null,
       riskLevel: null,
     },
     {
-      id: 'NCS-2026-003',
+      id: 3,
       employee: 'Citra Dewi',
       department: 'HR',
-      status: 'active',
+      status: 'consent',
       findings: 6,
       risk: 78,
       riskLevel: 'CRITICAL',
@@ -77,24 +77,12 @@ export default function AssessorDashboard() {
     },
   ]
 
-  const actions = (row) => (
-    <Button size="sm" variant="ghost" onClick={() => {}}>
-      Lihat
-    </Button>
-  )
-
   return (
     <div>
-      <div className="flex flex-col gap-3 md:gap-0 md:flex-row md:items-center md:justify-between mb-4 md:mb-6">
-        <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-text-primary">
-            Ruang Kerja Penilaian
-          </h1>
-        </div>
-        <Button onClick={() => {}}>
-          <Plus size={18} />
-          <span className="hidden sm:inline">Penilaian Baru</span>
-        </Button>
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-xl md:text-2xl font-semibold text-text-primary">
+          Ruang Kerja Penilaian
+        </h1>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
@@ -123,7 +111,7 @@ export default function AssessorDashboard() {
             </h2>
           </div>
           <div className="p-4 md:p-6">
-          <DataTable columns={columns} data={activeAssessments} actions={actions} />
+          <DataTable columns={columns} data={activeAssessments} onRowClick={(row) => navigate(`/assessor/assessments/${row.id}`)} />
         </div>
       </Card>
     </div>

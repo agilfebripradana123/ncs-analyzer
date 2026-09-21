@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
@@ -70,7 +71,12 @@ export default function ConsentPage() {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto py-4 md:py-8">
         <div className="text-center mb-6 md:mb-8">
-          <h1 className="text-xl md:text-2xl font-bold text-text-primary">NCS ANALYZER</h1>
+          <div className="flex items-center gap-3 mb-6">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
+              <ArrowLeft size={16} /> Kembali
+            </Button>
+            <h1 className="text-xl md:text-2xl font-bold text-text-primary">NCS ANALYZER</h1>
+          </div>
           <p className="text-sm text-text-secondary mt-1">Penilaian Keamanan</p>
         </div>
 

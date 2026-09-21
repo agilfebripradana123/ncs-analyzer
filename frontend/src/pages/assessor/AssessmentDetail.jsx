@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { QrCode } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft, QrCode } from 'lucide-react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
@@ -15,6 +15,7 @@ import { QRCodeSVG } from 'qrcode.react'
 
 export default function AssessmentDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [assessment, setAssessment] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -110,9 +111,14 @@ export default function AssessmentDetail() {
     <div>
       <div className="flex flex-col gap-3 md:gap-0 md:flex-row md:items-center md:justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-text-primary">
-            Assessment #{a.assessment_code || a.id}
-          </h1>
+          <div className="flex items-center gap-3 mb-6">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/assessor/assessments')}>
+              <ArrowLeft size={16} /> Kembali
+            </Button>
+            <h1 className="text-xl md:text-2xl font-semibold text-text-primary">
+              Assessment #{a.assessment_code || a.id}
+            </h1>
+          </div>
           <p className="text-sm text-text-secondary mt-1">
             {a.employee?.name || '-'}
           </p>

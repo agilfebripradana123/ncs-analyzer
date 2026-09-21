@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class AdminSeeder extends Seeder
 {
@@ -13,12 +14,12 @@ class AdminSeeder extends Seeder
 
         User::updateOrCreate(
             ['email' => 'admin@ncs-analyzer.test'],
-            ['name' => 'Administrator', 'password' => 'Admin123!', 'role' => 'admin', 'status' => 'active']
+            ['name' => 'Administrator', 'password' => Hash::make('Admin123!'), 'role' => 'admin', 'status' => 'active']
         );
 
         User::updateOrCreate(
             ['email' => 'assessor@ncs-analyzer.test'],
-            ['name' => 'Assessor', 'password' => 'Assessor123!', 'role' => 'assessor', 'status' => 'active']
+            ['name' => 'Assessor', 'password' => Hash::make('Assessor123!'), 'role' => 'assessor', 'status' => 'active']
         );
     }
 }

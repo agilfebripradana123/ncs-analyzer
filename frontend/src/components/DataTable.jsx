@@ -15,6 +15,7 @@ export default function DataTable({
   onPageChange,
   rowKey = 'id',
   actions,
+  onRowClick,
 }) {
   if (loading) return <LoadingState />
   if (error) return <ErrorState message={error} onRetry={onRetry} />
@@ -53,7 +54,8 @@ export default function DataTable({
               {data.map((row) => (
                 <tr
                   key={row[rowKey]}
-                  className="hover:bg-primary/5 transition-colors"
+                  onClick={() => onRowClick?.(row)}
+                  className={`hover:bg-primary/5 transition-colors${onRowClick ? ' cursor-pointer' : ''}`}
                 >
                   {columns.map((col) => (
                     <td key={col.key} className="px-3 py-2 sm:px-4 sm:py-3 text-sm text-text-primary">

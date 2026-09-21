@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
@@ -56,9 +57,14 @@ export default function AssessmentCreate() {
 
   return (
     <div>
-      <h1 className="text-xl md:text-2xl font-semibold text-text-primary mb-4 md:mb-6">
-        Ruang Kerja Penilaian
-      </h1>
+      <div className="flex items-center gap-3 mb-6">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/assessor/assessments')}>
+          <ArrowLeft size={16} /> Kembali
+        </Button>
+        <h1 className="text-xl md:text-2xl font-semibold text-text-primary mb-4 md:mb-6">
+          Ruang Kerja Penilaian
+        </h1>
+      </div>
       <Card className="w-full max-w-lg">
         <h2 className="text-base md:text-lg font-semibold text-text-primary mb-4 md:mb-6">
           Buat Penilaian
