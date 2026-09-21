@@ -1,0 +1,258 @@
+import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { QrCode } from 'lucide-react'
+import api from '../../api/axios'
+import toast from 'react-hot-toast'
+import Button from '../../components/Button'
+import Card from '../../components/Card'
+import StatusBadge from '../../components/StatusBadge'
+import Tabs from '../../components/Tabs'
+import FindingCard from '../../components/FindingCard'
+import RiskScoreCard from '../../components/RiskScoreCard'
+import LoadingState from '../../components/LoadingState'
+import EmptyState from '../../components/EmptyState'
+import { QRCodeSVG } from 'qrcode.react'
+
+export default function AssessmentDetail() {
+  const { id } = useParams()
+  const [assessment, setAssessment] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [activeTab, setActiveTab] = useState('overview')
+  const [findings, setFindings] = useState([])
+  const [riskScore, setRiskScore] = useState(null)
+  const [report, setReport] = useState(null)
+  const [session, setSession] = useState(null)
+  const [actionLoading, setActionLoading] = useState(false)
+
+  const fetchDetail = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const { data } = await api.get(`/assessor/assessments/${id}`)
+      setAssessment(data.data)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Gagal memuat detail')
+      toast.error(err.response?.data?.message || 'Gagal memuat detail')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchFindings = async () => {
+    try {
+      const { data } = await api.get(`/assessor/assessments/${id}/findings`)
+      setFindings(data.data)
+    } catch {}
+  }
+
+  const fetchRiskScore = async () => {
+    try {
+      const { data } = await api.get(`/assessor/assessments/${id}/risk-score`)
+      setRiskScore(data.data)
+    } catch {}
+  }
+
+  const fetchReport = async () => {
+    try {
+      const { data } = await api.get(`/assessor/assessments/${id}/report`)
+      setReport(data.data)
+    } catch {}
+  }
+
+  const fetchSession = async () => {
+    try {
+      const { data } = await api.get(`/assessor/assessments/${id}/session`)
+      setSession(data.data)
+    } catch {}
+  }
+
+  useEffect(() => { fetchDetail() }, [id])
+  useEffect(() => {
+    if (activeTab === 'findings') fetchFindings()
+    if (activeTab === 'risk') fetchRiskScore()
+    if (activeTab === 'report') fetchReport()
+    if (activeTab === 'session') fetchSession()
+  }, [activeTab])
+
+  const handleAction = async (action) => {
+    setActionLoading(true)
+    try {
+      await api.post(`/assessor/assessments/${id}/${action}`)
+      toast.success(`${action} berhasil`)
+      await Promise.all([fetchDetail(), fetchSession()])
+    } catch (err) {
+      toast.error(err.response?.data?.message || `Gagal ${action}`)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  if (loading) return <LoadingState />
+  if (error) return <EmptyState message={error} action={<Button onClick={fetchDetail}>Retry</Button>} />
+  if (!assessment) return <EmptyState message="Assessment tidak ditemukan" />
+
+  const a = assessment
+  const status = a.status
+  const canStart = ['pending', 'consent'].includes(status)
+  const canComplete = ['active', 'processing'].includes(status)
+  const canCalculate = ['active', 'processing'].includes(status) && !riskScore
+
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'findings', label: 'Findings' },
+    { id: 'session', label: 'Session' },
+    { id: 'risk', label: 'Risk Score' },
+    { id: 'report', label: 'Report' },
+  ]
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-text-primary">
+            Assessment #{a.assessment_code || a.id}
+          </h1>
+          <p className="text-sm text-text-secondary mt-1">
+            {a.employee?.name || '-'}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <StatusBadge status={status} />
+          {canStart && (
+            <Button onClick={() => handleAction('start')} loading={actionLoading}>
+              Start
+            </Button>
+          )}
+          {canComplete && (
+            <Button variant="secondary" onClick={() => handleAction('complete')} loading={actionLoading}>
+              Complete
+            </Button>
+          )}
+          {canCalculate && (
+            <Button variant="ghost" onClick={() => handleAction('risk-score/calculate')} loading={actionLoading}>
+              Calculate Risk
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">Employee</p>
+          <p className="text-sm font-medium text-text-primary">{a.employee?.name || '-'}</p>
+          <p className="text-xs text-text-secondary mt-0.5">{a.employee?.department || ''}</p>
+        </Card>
+        <Card>
+          <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">Assessor</p>
+          <p className="text-sm font-medium text-text-primary">{a.assessor?.name || '-'}</p>
+        </Card>
+        <Card>
+          <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">Session</p>
+          <p className="text-sm font-medium text-text-primary">{a.session?.status || '-'}</p>
+        </Card>
+        <Card>
+          <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">Risk</p>
+          <p className="text-sm font-medium text-text-primary">{a.riskScore?.score ?? '-'}</p>
+        </Card>
+      </div>
+
+      <Card padding={false}>
+        <div className="px-6 pt-4">
+          <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+        </div>
+        <div className="p-6">
+          {activeTab === 'overview' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+              <div>
+                <h3 className="font-semibold text-text-primary mb-3">Assessment Information</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between"><span className="text-text-secondary">Code</span><span className="font-medium text-text-primary">{a.assessment_code || a.id}</span></div>
+                  <div className="flex justify-between"><span className="text-text-secondary">Status</span><StatusBadge status={status} /></div>
+                  <div className="flex justify-between"><span className="text-text-secondary">Created</span><span className="text-text-primary">{new Date(a.created_at).toLocaleString('id-ID')}</span></div>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-text-primary mb-3">Session Information</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between"><span className="text-text-secondary">Status</span><span className="text-text-primary">{a.session?.status || '-'}</span></div>
+                  <div className="flex justify-between"><span className="text-text-secondary">Consent</span><span className="text-text-primary">{a.consent?.status || '-'}</span></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'findings' && (
+            findings.length === 0 ? <EmptyState message="Tidak ada findings" /> : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {findings.map((f) => <FindingCard key={f.id} finding={f} />)}
+              </div>
+            )
+          )}
+
+          {activeTab === 'session' && (
+            session ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-6">
+                  <div>
+                    <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-2">Session Status</p>
+                    <StatusBadge status={session.status} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-2">Started</p>
+                    <p className="text-sm text-text-primary">{session.started_at ? new Date(session.started_at).toLocaleString('id-ID') : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-2">Ended</p>
+                    <p className="text-sm text-text-primary">{session.ended_at ? new Date(session.ended_at).toLocaleString('id-ID') : '-'}</p>
+                  </div>
+                </div>
+                {session.token && (
+                  <div className="mt-4 p-6 bg-surface-secondary rounded-md border border-border flex flex-col items-center gap-3 max-w-xs">
+                    <QrCode size={20} className="text-text-secondary" />
+                    <QRCodeSVG value={session.token} size={160} />
+                    <p className="text-xs text-text-secondary">Scan to continue</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <EmptyState message="Belum ada session" action={<Button onClick={() => handleAction('session')}>Create Session</Button>} />
+            )
+          )}
+
+          {activeTab === 'risk' && (
+            riskScore ? (
+              <RiskScoreCard
+                score={riskScore.score}
+                level={riskScore.level}
+                breakdown={{ visual: riskScore.visual_score, log: riskScore.log_score }}
+              />
+            ) : (
+              <EmptyState message="Belum ada risk score" action={<Button onClick={() => handleAction('risk-score/calculate')}>Calculate</Button>} />
+            )
+          )}
+
+          {activeTab === 'report' && (
+            report ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div><span className="text-text-secondary">Employee:</span> <span className="font-medium text-text-primary">{a.employee?.name || '-'}</span></div>
+                  <div><span className="text-text-secondary">Assessment:</span> <span className="font-medium text-text-primary">{a.assessment_code || a.id}</span></div>
+                  <div><span className="text-text-secondary">Assessor:</span> <span className="font-medium text-text-primary">{a.assessor?.name || '-'}</span></div>
+                  <div><span className="text-text-secondary">Date:</span> <span className="font-medium text-text-primary">{new Date(a.created_at).toLocaleDateString('id-ID')}</span></div>
+                  <div><span className="text-text-secondary">Status:</span> <StatusBadge status={status} /></div>
+                  <div><span className="text-text-secondary">Risk Level:</span> <span className="font-medium text-text-primary">{riskScore?.level || '-'}</span></div>
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => window.open(`/api/assessor/assessments/${id}/report/json`, '_blank')}>
+                  View JSON
+                </Button>
+              </div>
+            ) : (
+              <EmptyState message="Belum ada report" action={<Button onClick={() => handleAction('report')}>Generate Report</Button>} />
+            )
+          )}
+        </div>
+      </Card>
+    </div>
+  )
+}
