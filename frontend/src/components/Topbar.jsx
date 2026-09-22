@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, Search } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -14,18 +14,6 @@ export default function Topbar() {
         </h2>
       </div>
       <div className="flex items-center gap-4">
-        <button
-          className="p-2 hover:bg-surface-secondary rounded-md transition-colors"
-          aria-label="Cari"
-        >
-          <Search size={20} className="text-text-secondary" />
-        </button>
-        <button
-          className="p-2 hover:bg-surface-secondary rounded-md transition-colors"
-          aria-label="Notifikasi"
-        >
-          <Bell size={20} className="text-text-secondary" />
-        </button>
         <div className="relative">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}

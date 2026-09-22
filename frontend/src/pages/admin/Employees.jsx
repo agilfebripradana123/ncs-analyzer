@@ -1,4 +1,4 @@
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Ban, CheckCircle, Pencil, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
@@ -117,6 +117,16 @@ export default function Employees() {
     }
   }
 
+  const handleReactivate = async (emp) => {
+    try {
+      await api.put(`/admin/employees/${emp.id}`, { status: 'active' })
+      toast.success('Karyawan diaktifkan kembali')
+      fetchEmployees(meta?.current_page || 1, search)
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal mengaktifkan karyawan')
+    }
+  }
+
   if (loading && employees.length === 0) return <LoadingState />
 
   const columns = [
@@ -136,9 +146,15 @@ export default function Employees() {
       <Button size="sm" variant="ghost" onClick={() => openEdit(row)} aria-label="Ubah">
         <Pencil size={14} />
       </Button>
-      <Button size="sm" variant="danger" onClick={() => setDeleteDialog(row)} aria-label="Nonaktifkan">
-        <Trash2 size={14} />
-      </Button>
+      {row.status === 'active' ? (
+        <Button size="sm" variant="danger" onClick={() => setDeleteDialog(row)} aria-label="Nonaktifkan">
+          <Ban size={14} />
+        </Button>
+      ) : (
+        <Button size="sm" variant="success" onClick={() => handleReactivate(row)} aria-label="Aktifkan">
+          <CheckCircle size={14} />
+        </Button>
+      )}
     </>
   )
 
@@ -184,14 +200,20 @@ export default function Employees() {
         title={editData ? 'Ubah Karyawan' : 'Tambah Karyawan'}
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            label="Kode Karyawan"
-            value={form.employee_code}
-            onChange={(e) =>
-              setForm({ ...form, employee_code: e.target.value })
-            }
-            required
-          />
+          {!editData && (
+            <Input
+              label="Kode Karyawan (Otomatis)"
+              value="Akan digenerate otomatis"
+              disabled
+            />
+          )}
+          {editData && (
+            <Input
+              label="Kode Karyawan"
+              value={form.employee_code}
+              disabled
+            />
+          )}
           <Input
             label="Nama"
             value={form.name}

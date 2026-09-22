@@ -14,7 +14,7 @@ class StoreEmployeeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_code' => 'required|string|unique:employees',
+            'employee_code' => 'nullable|string|unique:employees',
             'name' => 'required|string',
             'department' => 'nullable|string',
             'position' => 'nullable|string',

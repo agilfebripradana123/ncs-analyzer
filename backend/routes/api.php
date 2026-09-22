@@ -20,7 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
-    Route::middleware('role:admin')->prefix('admin')->group(function () {
+    Route::middleware(['role:admin', 'audit'])->prefix('admin')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::apiResource('employees', EmployeeController::class);
         Route::apiResource('rules', DetectionRuleController::class);
@@ -28,7 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('dashboard/stats', [\App\Http\Controllers\Admin\DashboardController::class, 'stats']);
     });
 
-    Route::middleware('role:assessor')->prefix('assessor')->group(function () {
+    Route::middleware(['role:assessor', 'audit'])->prefix('assessor')->group(function () {
         Route::get('findings', [\App\Http\Controllers\Assessor\FindingController::class, 'all']);
         Route::get('sessions', [\App\Http\Controllers\Assessor\SessionController::class, 'index']);
         Route::get('employees', [\App\Http\Controllers\Assessor\EmployeeController::class, 'index']);

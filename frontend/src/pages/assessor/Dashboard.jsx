@@ -45,7 +45,7 @@ export default function AssessorDashboard() {
   )
 
   const columns = [
-    { key: 'id', header: 'Kode Penilaian', render: (row) => `#${row.id}` },
+    { key: 'assessment_code', header: 'Kode Penilaian', render: (row) => row.assessment_code || `#${row.id}` },
     {
       key: 'employee',
       header: 'Karyawan',

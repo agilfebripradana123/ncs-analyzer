@@ -61,7 +61,7 @@ export default function AuditLogs() {
     {
       key: 'entity_type',
       header: 'Entitas',
-      render: (row) => `${row.entity_type} #${row.entity_id}`,
+      render: (row) => row.entity_type && row.entity_id ? `${row.entity_type} #${row.entity_id}` : '-',
     },
     { key: 'ip_address', header: 'IP' },
     { key: 'created_at', header: 'Waktu', render: (row) => new Date(row.created_at).toLocaleString('id-ID') },
