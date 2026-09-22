@@ -4,6 +4,7 @@ import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
 import Input from '../../components/Input'
+import SearchInput from '../../components/SearchInput'
 import Select from '../../components/Select'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -34,6 +35,9 @@ export default function Rules() {
   const [rules, setRules] = useState([])
   const [loading, setLoading] = useState(true)
   const [meta, setMeta] = useState(null)
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortOrder, setSortOrder] = useState('desc')
   const [editModal, setEditModal] = useState(false)
   const [editData, setEditData] = useState(null)
   const [deleteDialog, setDeleteDialog] = useState(null)
@@ -46,10 +50,10 @@ export default function Rules() {
     status: 'active',
   })
 
-  const fetchRules = async (page = 1) => {
+  const fetchRules = async (page = 1, q = '') => {
     setLoading(true)
     try {
-      const { data } = await api.get('/admin/rules', { params: { page } })
+      const { data } = await api.get('/admin/rules', { params: { page, search: q, sort: sortBy, order: sortOrder } })
       setRules(data.data)
       setMeta(data.meta)
     } catch (err) {
@@ -62,6 +66,24 @@ export default function Rules() {
   useEffect(() => {
     fetchRules()
   }, [])
+
+  const handleSearch = (q) => {
+    setSearch(q)
+    fetchRules(1, q)
+  }
+
+  const handleSort = (key) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(key)
+      setSortOrder('asc')
+    }
+  }
+
+  useEffect(() => {
+    fetchRules(meta?.current_page || 1, search)
+  }, [sortBy, sortOrder])
 
   const openCreate = () => {
     setEditData(null)
@@ -92,7 +114,7 @@ export default function Rules() {
         toast.success('Aturan ditambahkan')
       }
       setEditModal(false)
-      fetchRules(meta?.current_page || 1)
+      fetchRules(meta?.current_page || 1, search)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Gagal menyimpan aturan')
     } finally {
@@ -105,7 +127,7 @@ export default function Rules() {
       await api.delete(`/admin/rules/${deleteDialog.id}`)
       toast.success('Aturan dinonaktifkan')
       setDeleteDialog(null)
-      fetchRules(meta?.current_page || 1)
+      fetchRules(meta?.current_page || 1, search)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Gagal menonaktifkan aturan')
     }
@@ -180,6 +202,8 @@ export default function Rules() {
         </Button>
       </div>
 
+      <SearchInput value={search} onChange={handleSearch} placeholder="Cari aturan..." />
+
       {rules.length === 0 ? (
         <EmptyState message="Tidak ada aturan" />
       ) : (
@@ -189,8 +213,12 @@ export default function Rules() {
             data={rules}
             loading={loading}
             meta={meta}
-            onPageChange={(p) => fetchRules(p)}
+            onPageChange={(p) => fetchRules(p, search)}
             actions={actions}
+            sortable
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={handleSort}
           />
         </>
       )}

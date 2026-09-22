@@ -9,9 +9,25 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return UserResource::collection(User::paginate(20));
+        $query = User::query();
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $sortBy = $request->input('sort', 'created_at');
+        $sortOrder = $request->input('order', 'desc');
+        $allowedSort = ['name', 'email', 'role', 'status', 'created_at'];
+        if (in_array($sortBy, $allowedSort)) {
+            $query->orderBy($sortBy, $sortOrder);
+        }
+
+        return UserResource::collection($query->paginate(20));
     }
 
     public function store(Request $request)

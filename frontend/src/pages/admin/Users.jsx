@@ -4,6 +4,7 @@ import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
 import Input from '../../components/Input'
+import SearchInput from '../../components/SearchInput'
 import Select from '../../components/Select'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -27,6 +28,9 @@ export default function Users() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [meta, setMeta] = useState(null)
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortOrder, setSortOrder] = useState('desc')
   const [editModal, setEditModal] = useState(false)
   const [editData, setEditData] = useState(null)
   const [deleteDialog, setDeleteDialog] = useState(null)
@@ -40,10 +44,10 @@ export default function Users() {
     status: 'active',
   })
 
-  const fetchUsers = async (page = 1) => {
+  const fetchUsers = async (page = 1, q = '') => {
     setLoading(true)
     try {
-      const { data } = await api.get('/admin/users', { params: { page } })
+      const { data } = await api.get('/admin/users', { params: { page, search: q, sort: sortBy, order: sortOrder } })
       setUsers(data.data)
       setMeta(data.meta)
     } catch (err) {
@@ -56,6 +60,24 @@ export default function Users() {
   useEffect(() => {
     fetchUsers()
   }, [])
+
+  const handleSearch = (q) => {
+    setSearch(q)
+    fetchUsers(1, q)
+  }
+
+  const handleSort = (key) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(key)
+      setSortOrder('asc')
+    }
+  }
+
+  useEffect(() => {
+    fetchUsers(meta?.current_page || 1, search)
+  }, [sortBy, sortOrder])
 
   const openCreate = () => {
     setEditData(null)
@@ -89,7 +111,7 @@ export default function Users() {
         toast.success('Pengguna ditambahkan')
       }
       setEditModal(false)
-      fetchUsers(meta?.current_page || 1)
+      fetchUsers(meta?.current_page || 1, search)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Gagal menyimpan pengguna')
     } finally {
@@ -102,7 +124,7 @@ export default function Users() {
       await api.delete(`/admin/users/${deleteDialog.id}`)
       toast.success('Pengguna dinonaktifkan')
       setDeleteDialog(null)
-      fetchUsers(meta?.current_page || 1)
+      fetchUsers(meta?.current_page || 1, search)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Gagal menonaktifkan pengguna')
     }
@@ -148,6 +170,8 @@ export default function Users() {
         </Button>
       </div>
 
+      <SearchInput value={search} onChange={handleSearch} placeholder="Cari pengguna..." />
+
       {users.length === 0 ? (
         <EmptyState message="Tidak ada pengguna" />
       ) : (
@@ -157,7 +181,11 @@ export default function Users() {
             data={users}
             loading={loading}
             meta={meta}
-            onPageChange={(p) => fetchUsers(p)}
+            sortable
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+            onPageChange={(p) => fetchUsers(p, search)}
             actions={actions}
           />
         </>

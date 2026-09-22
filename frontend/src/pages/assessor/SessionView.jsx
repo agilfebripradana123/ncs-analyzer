@@ -60,81 +60,89 @@ export default function SessionView() {
   if (!session) return <EmptyState message="Sesi tidak ditemukan" />
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md text-center">
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/assessor/dashboard')}>
-            <ArrowLeft size={16} /> Kembali
-          </Button>
-          <h1 className="text-xl md:text-2xl font-semibold text-text-primary mb-2">
+<div>
+      <div className="mb-4 md:mb-6">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/assessor/sessions')}>
+          <ArrowLeft size={16} /> Kembali ke Sesi
+        </Button>
+      </div>
+
+      <div className="max-w-lg mx-auto">
+        <Card className="text-center">
+          <h1 className="text-xl md:text-2xl font-semibold text-text-primary mb-1">
             Sesi Penilaian
           </h1>
-        </div>
-        <p className="text-sm text-text-secondary mb-6">
-          Assessment #{session.assessment_id}
-        </p>
+          <p className="text-sm text-text-secondary mb-6">
+            {session.assessment?.assessment_code || `#${session.assessment_id}`} — {session.assessment?.employee?.name || 'Karyawan'}
+          </p>
 
-        {session.token ? (
-          <div className="flex flex-col items-center gap-4 mb-6">
-            <div className="p-4 md:p-6 bg-surface-secondary rounded-md border border-border">
-              <QRCodeSVG value={session.token} size={160} className="md:w-[200px] md:h-[200px]" />
+          {session.session_token ? (
+            <div className="flex flex-col items-center gap-4 mb-6">
+              <div className="p-4 md:p-6 bg-surface-secondary rounded-md border border-border">
+                <QRCodeSVG value={session.session_token} size={160} className="md:w-[200px] md:h-[200px]" />
+              </div>
+              <p className="text-sm text-text-secondary">
+                Scan QR untuk melanjutkan sesi
+              </p>
             </div>
-            <p className="text-sm text-text-secondary">
-              Scan untuk melanjutkan
-            </p>
-          </div>
-        ) : (
-          <div className="mb-6 p-4 bg-surface-secondary rounded-md border border-border">
-            <p className="text-sm text-text-secondary">
-              Tidak ada QR code tersedia
-            </p>
-          </div>
-        )}
+          ) : (
+            <div className="mb-6 p-4 bg-surface-secondary rounded-md border border-border">
+              <p className="text-sm text-text-secondary">
+                Tidak ada QR code tersedia
+              </p>
+            </div>
+          )}
 
-        <div className="grid grid-cols-2 gap-4 mb-6 text-left">
-          <div>
-            <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">
-              Status Sesi
-            </p>
-            <StatusBadge status={session.status} />
+          <div className="grid grid-cols-2 gap-4 mb-6 text-left">
+            <div>
+              <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">
+                Status Sesi
+              </p>
+              <StatusBadge status={session.status} />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">
+                Kadaluarsa
+              </p>
+              <span className="text-sm text-text-primary">
+                {session.expires_at
+                  ? new Date(session.expires_at).toLocaleString('id-ID')
+                  : '-'}
+              </span>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">
-              Status QR
-            </p>
-            <StatusBadge status={session.qr_status || 'active'} />
-          </div>
-        </div>
 
-        <div className="text-left text-sm space-y-2 mb-6">
-          <div className="flex justify-between">
-            <span className="text-text-secondary">Dimulai:</span>
-            <span className="text-text-primary">
-              {session.started_at
-                ? new Date(session.started_at).toLocaleString('id-ID')
-                : '-'}
-            </span>
+          <div className="text-left text-sm space-y-2 mb-6">
+            <div className="flex justify-between">
+              <span className="text-text-secondary">Dimulai:</span>
+              <span className="text-text-primary">
+                {session.started_at
+                  ? new Date(session.started_at).toLocaleString('id-ID')
+                  : '-'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-secondary">Diakhiri:</span>
+              <span className="text-text-primary">
+                {session.ended_at
+                  ? new Date(session.ended_at).toLocaleString('id-ID')
+                  : '-'}
+              </span>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span className="text-text-secondary">Diakhiri:</span>
-            <span className="text-text-primary">
-              {session.ended_at
-                ? new Date(session.ended_at).toLocaleString('id-ID')
-                : '-'}
-            </span>
-          </div>
-        </div>
 
-        {session.status === 'active' && (
-          <Button
-            variant="danger"
-            onClick={handleEndSession}
-            loading={actionLoading}
-          >
-            Akhiri Sesi
-          </Button>
-        )}
-      </Card>
+          {session.status === 'active' && (
+            <Button
+              variant="danger"
+              onClick={handleEndSession}
+              loading={actionLoading}
+              className="w-full"
+            >
+              Akhiri Sesi
+            </Button>
+          )}
+        </Card>
+      </div>
     </div>
   )
 }

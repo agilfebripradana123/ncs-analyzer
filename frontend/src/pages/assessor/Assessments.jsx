@@ -5,7 +5,7 @@ import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
 import Card from '../../components/Card'
-import Input from '../../components/Input'
+import SearchInput from '../../components/SearchInput'
 import DataTable from '../../components/DataTable'
 import StatusBadge from '../../components/StatusBadge'
 import LoadingState from '../../components/LoadingState'
@@ -16,8 +16,10 @@ export default function Assessments() {
   const [assessments, setAssessments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [search, setSearch] = useState('')
+   const [search, setSearch] = useState('')
   const [meta, setMeta] = useState(null)
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortOrder, setSortOrder] = useState('desc')
   const navigate = useNavigate()
 
   const fetchAssessments = async (page = 1, q = '') => {
@@ -25,7 +27,7 @@ export default function Assessments() {
     setError(null)
     try {
       const { data } = await api.get('/assessor/assessments', {
-        params: { page, search: q },
+        params: { page, search: q, sort: sortBy, order: sortOrder },
       })
       setAssessments(data.data)
       setMeta(data.meta)
@@ -41,26 +43,43 @@ export default function Assessments() {
     fetchAssessments()
   }, [])
 
+  useEffect(() => {
+    fetchAssessments(meta?.current_page || 1, search)
+  }, [sortBy, sortOrder])
+
+  const handleSort = (key) => {
+    if (sortBy === key) {
+      setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(key)
+      setSortOrder('desc')
+    }
+  }
+
   const columns = [
-    { key: 'assessment_code', header: 'Penilaian' },
+    { key: 'assessment_code', header: 'Kode Penilaian', sortable: true },
     {
       key: 'employee',
       header: 'Karyawan',
+      sortable: false,
       render: (row) => row.employee?.name || '-',
     },
     {
       key: 'status',
       header: 'Status',
+      sortable: true,
       render: (row) => <StatusBadge status={row.status} />,
     },
     {
       key: 'risk',
       header: 'Risiko',
-      render: (row) => row.risk_score ?? '-',
+      sortable: true,
+      render: (row) => row.risk_score?.score ?? '-',
     },
     {
       key: 'date',
       header: 'Tanggal',
+      sortable: true,
       render: (row) =>
         row.created_at
           ? new Date(row.created_at).toLocaleDateString('id-ID')
@@ -95,13 +114,7 @@ export default function Assessments() {
         </Button>
       </div>
 
-      <div className="mb-4 max-w-sm">
-        <Input
-          placeholder="Cari penilaian..."
-          value={search}
-          onChange={(e) => handleSearch(e.target.value)}
-        />
-      </div>
+      <SearchInput value={search} onChange={handleSearch} placeholder="Cari penilaian..." />
 
       {error ? (
         <EmptyState message={error} action={<Button onClick={() => fetchAssessments()}>Coba Lagi</Button>} />
@@ -118,6 +131,10 @@ export default function Assessments() {
             meta={meta}
             onPageChange={(p) => fetchAssessments(p, search)}
             actions={actions}
+            sortable
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={handleSort}
           />
         </>
       )}

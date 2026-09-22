@@ -10,6 +10,7 @@ class Assessment extends Model
         'employee_id',
         'assessor_id',
         'title',
+        'assessment_code',
         'status',
         'started_at',
         'completed_at',

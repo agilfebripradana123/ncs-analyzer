@@ -1,3 +1,4 @@
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import EmptyState from './EmptyState'
 import ErrorState from './ErrorState'
 import LoadingState from './LoadingState'
@@ -16,6 +17,10 @@ export default function DataTable({
   rowKey = 'id',
   actions,
   onRowClick,
+  sortable = false,
+  sortBy,
+  sortOrder,
+  onSort,
 }) {
   if (loading) return <LoadingState />
   if (error) return <ErrorState message={error} onRetry={onRetry} />
@@ -35,14 +40,37 @@ export default function DataTable({
           <table className="w-full text-left min-w-full">
             <thead className="bg-surface-secondary border-b border-border">
               <tr>
-                {columns.map((col) => (
-                   <th
-                    key={col.key}
-                    className="px-3 py-2 sm:px-4 sm:py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider"
-                   >
-                    {col.header}
-                  </th>
-                ))}
+                {columns.map((col) => {
+                  const isSortable = sortable && col.sortable !== false
+                  const isActive = sortBy === col.key
+                  
+                  return (
+                    <th
+                      key={col.key}
+                      className={`px-3 py-2 sm:px-4 sm:py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider${
+                        isSortable ? ' cursor-pointer hover:bg-surface/5' : ''
+                      }`}
+                      onClick={isSortable ? () => onSort?.(col.key) : undefined}
+                    >
+                      <div className="flex items-center gap-2">
+                        {col.header}
+                        {isSortable && (
+                          <span className="inline-flex">
+                            {isActive ? (
+                              sortOrder === 'asc' ? (
+                                <ChevronUp size={14} />
+                              ) : (
+                                <ChevronDown size={14} />
+                              )
+                            ) : (
+                              <ChevronsUpDown size={14} className="opacity-40" />
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                  )
+                })}
                 {actions && (
                   <th className="px-3 py-2 sm:px-4 sm:py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">
                     Aksi

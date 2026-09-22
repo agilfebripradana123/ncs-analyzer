@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import DataTable from '../../components/DataTable'
+import SearchInput from '../../components/SearchInput'
 import LoadingState from '../../components/LoadingState'
 import EmptyState from '../../components/EmptyState'
 import Pagination from '../../components/Pagination'
@@ -10,12 +11,15 @@ export default function AuditLogs() {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [meta, setMeta] = useState(null)
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortOrder, setSortOrder] = useState('desc')
 
-  const fetchLogs = async (page = 1) => {
+  const fetchLogs = async (page = 1, q = '') => {
     setLoading(true)
     try {
       const { data } = await api.get('/admin/audit-logs', {
-        params: { page },
+        params: { page, search: q, sort: sortBy, order: sortOrder },
       })
       setLogs(data.data)
       setMeta(data.meta)
@@ -29,6 +33,24 @@ export default function AuditLogs() {
   useEffect(() => {
     fetchLogs()
   }, [])
+
+  const handleSearch = (q) => {
+    setSearch(q)
+    fetchLogs(1, q)
+  }
+
+  const handleSort = (key) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(key)
+      setSortOrder('asc')
+    }
+  }
+
+  useEffect(() => {
+    fetchLogs(meta?.current_page || 1, search)
+  }, [sortBy, sortOrder])
 
   if (loading && logs.length === 0) return <LoadingState />
 
@@ -51,6 +73,8 @@ export default function AuditLogs() {
         Audit Logs
       </h1>
 
+      <SearchInput value={search} onChange={handleSearch} placeholder="Cari log..." />
+
       {logs.length === 0 ? (
         <EmptyState message="Tidak ada log audit" />
       ) : (
@@ -60,7 +84,11 @@ export default function AuditLogs() {
             data={logs}
             loading={loading}
             meta={meta}
-            onPageChange={(p) => fetchLogs(p)}
+            sortable
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+            onPageChange={(p) => fetchLogs(p, search)}
             rowKey="id"
           />
         </>

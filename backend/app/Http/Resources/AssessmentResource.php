@@ -10,6 +10,7 @@ class AssessmentResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'assessment_code' => $this->assessment_code,
             'title' => $this->title,
             'status' => $this->status,
             'started_at' => $this->started_at?->toISOString(),
@@ -20,6 +21,7 @@ class AssessmentResource extends JsonResource
             'session' => new SessionResource($this->whenLoaded('session')),
             'risk_score' => new RiskScoreResource($this->whenLoaded('riskScore')),
             'report' => new ReportResource($this->whenLoaded('report')),
+            'total_findings' => ($this->visual_findings_count ?? 0) + ($this->log_findings_count ?? 0),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

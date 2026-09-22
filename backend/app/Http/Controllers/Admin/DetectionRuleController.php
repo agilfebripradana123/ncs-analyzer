@@ -7,12 +7,30 @@ use App\Http\Requests\StoreDetectionRuleRequest;
 use App\Http\Requests\UpdateDetectionRuleRequest;
 use App\Http\Resources\DetectionRuleResource;
 use App\Models\DetectionRule;
+use Illuminate\Http\Request;
 
 class DetectionRuleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return DetectionRuleResource::collection(DetectionRule::paginate(20));
+        $query = DetectionRule::query();
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('type', 'like', "%{$search}%")
+                  ->orWhere('pattern', 'like', "%{$search}%");
+            });
+        }
+
+        $sortBy = $request->input('sort', 'created_at');
+        $sortOrder = $request->input('order', 'desc');
+        $allowedSort = ['name', 'type', 'severity', 'risk_weight', 'status', 'created_at'];
+        if (in_array($sortBy, $allowedSort)) {
+            $query->orderBy($sortBy, $sortOrder);
+        }
+
+        return DetectionRuleResource::collection($query->paginate(20));
     }
 
     public function store(StoreDetectionRuleRequest $request)

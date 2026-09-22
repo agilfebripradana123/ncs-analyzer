@@ -15,6 +15,19 @@ class SessionResource extends JsonResource
             'started_at' => $this->started_at?->toISOString(),
             'expires_at' => $this->expires_at?->toISOString(),
             'ended_at' => $this->ended_at?->toISOString(),
+            'assessment_id' => $this->assessment_id,
+            'assessment' => $this->whenLoaded('assessment', function () {
+                return [
+                    'id' => $this->assessment->id,
+                    'assessment_code' => $this->assessment->assessment_code,
+                    'status' => $this->assessment->status,
+                    'employee' => $this->assessment->employee ? [
+                        'id' => $this->assessment->employee->id,
+                        'name' => $this->assessment->employee->name,
+                        'employee_code' => $this->assessment->employee->employee_code,
+                    ] : null,
+                ];
+            }),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

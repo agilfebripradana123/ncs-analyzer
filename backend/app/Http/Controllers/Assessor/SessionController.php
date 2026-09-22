@@ -5,11 +5,35 @@ namespace App\Http\Controllers\Assessor;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SessionResource;
 use App\Models\Assessment;
+use App\Models\AssessmentSession;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class SessionController extends Controller
 {
+    public function index()
+    {
+        $query = AssessmentSession::with(['assessment.employee']);
+
+        if ($search = request('search')) {
+            $query->whereHas('assessment.employee', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('employee_code', 'like', "%{$search}%");
+            });
+        }
+
+        $sortBy = request('sort', 'created_at');
+        $sortOrder = request('order', 'desc');
+        $allowedSort = ['session_token', 'status', 'started_at', 'expires_at', 'created_at'];
+        if (in_array($sortBy, $allowedSort)) {
+            $query->orderBy($sortBy, $sortOrder);
+        } else {
+            $query->latest();
+        }
+
+        return SessionResource::collection($query->paginate(20));
+    }
+
     public function store(Request $request, Assessment $assessment)
     {
         $this->authorize('update', $assessment);

@@ -13,11 +13,18 @@ class AssessmentController extends Controller
 {
     public function index(Request $request)
     {
-        $assessments = Assessment::where('assessor_id', $request->user()->id)
-            ->with(['employee', 'consent', 'session'])
-            ->paginate(20);
+        $query = Assessment::where('assessor_id', $request->user()->id)
+            ->with(['employee', 'consent', 'session', 'riskScore'])
+            ->withCount(['visualFindings', 'logFindings']);
 
-        return AssessmentResource::collection($assessments);
+        $sortBy = $request->input('sort', 'created_at');
+        $sortOrder = $request->input('order', 'desc');
+        $allowedSort = ['id', 'title', 'status', 'assessor_id', 'employee_id', 'created_at'];
+        if (in_array($sortBy, $allowedSort)) {
+            $query->orderBy($sortBy, $sortOrder);
+        }
+
+        return AssessmentResource::collection($query->paginate(20));
     }
 
     public function store(StoreAssessmentRequest $request)

@@ -25,9 +25,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('employees', EmployeeController::class);
         Route::apiResource('rules', DetectionRuleController::class);
         Route::get('audit-logs', [AuditLogController::class, 'index']);
+        Route::get('dashboard/stats', [\App\Http\Controllers\Admin\DashboardController::class, 'stats']);
     });
 
     Route::middleware('role:assessor')->prefix('assessor')->group(function () {
+        Route::get('findings', [\App\Http\Controllers\Assessor\FindingController::class, 'all']);
+        Route::get('sessions', [\App\Http\Controllers\Assessor\SessionController::class, 'index']);
+        Route::get('employees', [\App\Http\Controllers\Assessor\EmployeeController::class, 'index']);
         Route::apiResource('assessments', AssessmentController::class);
         Route::post('assessments/{assessment}/start', [AssessmentController::class, 'start']);
         Route::post('assessments/{assessment}/complete', [AssessmentController::class, 'complete']);
@@ -48,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('assessments/{assessment}/risk-score', [RiskScoreController::class, 'show']);
         Route::post('assessments/{assessment}/risk-score/calculate', [RiskScoreController::class, 'calculate']);
 
+        Route::get('reports', [\App\Http\Controllers\Assessor\ReportController::class, 'index']);
         Route::post('assessments/{assessment}/report', [ReportController::class, 'generate']);
         Route::get('assessments/{assessment}/report', [ReportController::class, 'show']);
     });

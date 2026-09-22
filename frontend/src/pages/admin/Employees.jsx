@@ -4,6 +4,7 @@ import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
 import Input from '../../components/Input'
+import SearchInput from '../../components/SearchInput'
 import Modal from '../../components/Modal'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import DataTable from '../../components/DataTable'
@@ -17,6 +18,8 @@ export default function Employees() {
   const [loading, setLoading] = useState(true)
   const [meta, setMeta] = useState(null)
   const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortOrder, setSortOrder] = useState('desc')
   const [editModal, setEditModal] = useState(false)
   const [editData, setEditData] = useState(null)
   const [deleteDialog, setDeleteDialog] = useState(null)
@@ -33,7 +36,7 @@ export default function Employees() {
     setLoading(true)
     try {
       const { data } = await api.get('/admin/employees', {
-        params: { page, search: q },
+        params: { page, search: q, sort: sortBy, order: sortOrder },
       })
       setEmployees(data.data)
       setMeta(data.meta)
@@ -52,6 +55,19 @@ export default function Employees() {
     setSearch(q)
     fetchEmployees(1, q)
   }
+
+  const handleSort = (key) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(key)
+      setSortOrder('asc')
+    }
+  }
+
+  useEffect(() => {
+    fetchEmployees(meta?.current_page || 1, search)
+  }, [sortBy, sortOrder])
 
   const openCreate = () => {
     setEditData(null)
@@ -141,6 +157,8 @@ export default function Employees() {
         </Button>
       </div>
 
+      <SearchInput value={search} onChange={handleSearch} placeholder="Cari karyawan..." />
+
       {employees.length === 0 ? (
         <EmptyState message="Tidak ada karyawan" />
       ) : (
@@ -150,6 +168,10 @@ export default function Employees() {
             data={employees}
             loading={loading}
             meta={meta}
+            sortable
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={handleSort}
             onPageChange={(p) => fetchEmployees(p, search)}
             actions={actions}
           />
