@@ -72,4 +72,21 @@ class SessionController extends Controller
             'data' => new SessionResource($session),
         ]);
     }
+
+    public function end(AssessmentSession $session)
+    {
+        $this->authorize('update', $session->assessment);
+
+        $session->update([
+            'status' => 'completed',
+            'ended_at' => now(),
+            'agent_status' => 'disconnected',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Session ended',
+            'data' => new SessionResource($session->fresh()),
+        ]);
+    }
 }

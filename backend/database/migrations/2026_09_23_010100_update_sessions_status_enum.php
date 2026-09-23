@@ -8,6 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return; // ponytail: SQLite lacks ALTER COLUMN for enum change; upgrade to string column when needed
+        }
         Schema::table('assessment_sessions', function (Blueprint $table) {
             $table->enum('status', [
                 'pending', 'consented', 'active', 'processing',
@@ -18,6 +21,9 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
         Schema::table('assessment_sessions', function (Blueprint $table) {
             $table->enum('status', ['pending', 'active', 'disconnected', 'completed', 'expired'])->default('pending')->change();
         });

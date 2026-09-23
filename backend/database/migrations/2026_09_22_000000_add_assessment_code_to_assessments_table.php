@@ -13,9 +13,17 @@ return new class extends Migration
             $table->string('assessment_code')->unique()->nullable()->after('title');
         });
 
-        DB::table('assessments')->whereNull('assessment_code')->update([
-            'assessment_code' => DB::raw("CONCAT('ASS-', LPAD(id, 5, '0'))"),
-        ]);
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::table('assessments')->whereNull('assessment_code')->update([
+                'assessment_code' => DB::raw("CONCAT('ASS-', LPAD(id, 5, '0'))"),
+            ]);
+        } else {
+            foreach (DB::table('assessments')->whereNull('assessment_code')->cursor() as $row) {
+                DB::table('assessments')->where('id', $row->id)->update([
+                    'assessment_code' => 'ASS-' . str_pad($row->id, 5, '0', STR_PAD_LEFT),
+                ]);
+            }
+        }
     }
 
     public function down(): void

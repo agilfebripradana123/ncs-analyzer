@@ -1,0 +1,3 @@
+# Dependencies:
+# pytesseract + Pillow optional (if using pytesseract wrapper later).
+# Minimal: tesseract binary on PATH only.

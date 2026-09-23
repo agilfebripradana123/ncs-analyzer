@@ -168,7 +168,7 @@ class DummyDataSeeder extends Seeder
             [
                 'employee_id' => $emp['EMP-003'],
                 'assessor_id' => $assessor->id,
-                'status' => 'consent',
+                'status' => 'consented',
             ]
         );
 

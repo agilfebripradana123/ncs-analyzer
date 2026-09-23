@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Assessment extends Model
 {
+    use HasFactory;
     protected static function booted(): void
     {
         static::creating(function ($assessment) {
@@ -52,6 +54,11 @@ class Assessment extends Model
     public function session()
     {
         return $this->hasOne(AssessmentSession::class);
+    }
+
+    public function frameEvidence()
+    {
+        return $this->hasMany(FrameEvidence::class);
     }
 
     public function activityLogs()

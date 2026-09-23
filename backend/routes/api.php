@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DetectionRuleController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Assessor\ActivityController;
+use App\Http\Controllers\Assessor\AgentController;
 use App\Http\Controllers\Assessor\AssessmentController;
 use App\Http\Controllers\Assessor\ConsentController;
 use App\Http\Controllers\Assessor\FindingController;
@@ -45,6 +46,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('assessments/{assessment}/session', [SessionController::class, 'store']);
         Route::get('assessments/{assessment}/session', [SessionController::class, 'show']);
+        Route::post('assessments/{assessment}/agent/token', [AgentController::class, 'issueToken']);
+        Route::post('sessions/{session}/end', [SessionController::class, 'end']);
+
+        // Agent endpoints - can use agent token or Sanctum
+        Route::post('sessions/{session}/agent/register', [AgentController::class, 'register']);
+        Route::post('sessions/{session}/agent/heartbeat', [AgentController::class, 'heartbeat']);
+        Route::post('sessions/{session}/agent/frames', [AgentController::class, 'frame']);
 
         Route::post('assessments/{assessment}/activity/upload', [ActivityController::class, 'upload']);
         Route::get('assessments/{assessment}/activities', [ActivityController::class, 'index']);
