@@ -11,6 +11,7 @@ Config via environment (atau file `.env` di folder capture-agent, lihat `.env.ex
   NCS_HEARTBEAT_INTERVAL - Heartbeat seconds (default 30.0)
 """
 
+import argparse
 import json
 import os
 import shutil
@@ -50,18 +51,34 @@ class NoopOcrEngine(OcrEngine):
 
 
 class TesseractEngine(OcrEngine):
-    """Tesseract OCR via `tesseract` binary on PATH. Returns [] on any error.
+    """Tesseract OCR via `tesseract` binary. Returns [] on any error.
 
+    Binary resolution: explicit path > PATH > Windows default install path.
     Parses TSV output (`tesseract stdin stdout -l LANG --psm N tsv`) to
     extract word lines with bounding boxes and confidence.
+    PNG passed via stdin — no frame saved to disk.
     """
 
-    def __init__(self, lang: str = "eng", psm: int = 6) -> None:
+    WINDOWS_DEFAULT = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+    def __init__(self, lang: str = "eng", psm: int = 6, tesseract_path: str | None = None) -> None:
         self.lang = lang
         self.psm = psm
+        self.tesseract_cmd = self._resolve(tesseract_path)
+
+    @classmethod
+    def _resolve(cls, explicit: str | None) -> str | None:
+        if explicit and Path(explicit).is_file():
+            return explicit
+        found = shutil.which("tesseract")
+        if found:
+            return found
+        if Path(cls.WINDOWS_DEFAULT).is_file():
+            return cls.WINDOWS_DEFAULT
+        return None
 
     def recognize(self, png: bytes) -> list[OcrResult]:
-        if not shutil.which("tesseract"):
+        if not self.tesseract_cmd:
             return []
         tsv = self._run(png)
         if not tsv:
@@ -71,7 +88,7 @@ class TesseractEngine(OcrEngine):
     def _run(self, png: bytes) -> str | None:
         try:
             result = subprocess.run(
-                ["tesseract", "stdin", "stdout",
+                [self.tesseract_cmd, "stdin", "stdout",
                  "-l", self.lang, "--psm", str(self.psm), "tsv"],
                 input=png, capture_output=True, timeout=30,
             )
@@ -271,58 +288,110 @@ def normalize_ocr(r: OcrResult) -> dict:
     )
 
 
-def load_config() -> tuple[str, str, str, float, float, str]:
-    api_url = os.getenv("NCS_API_URL", "http://127.0.0.1:8000/api")
-    session_id = os.getenv("NCS_SESSION_ID", "")
-    token = os.getenv("NCS_API_TOKEN", "")
-    ocr_engine = os.getenv("NCS_OCR_ENGINE", "none")
+def load_config() -> "AgentConfig":
+    """Static config from .env — API URL, intervals, OCR. No credentials."""
+    def _f(key: str, default: float) -> float:
+        try:
+            return float(os.getenv(key, str(default)))
+        except ValueError:
+            print(f"✗ {key} harus angka.")
+            sys.exit(1)
 
-    try:
-        capture_interval = float(os.getenv("NCS_CAPTURE_INTERVAL", "1.0"))
-        heartbeat_interval = float(os.getenv("NCS_HEARTBEAT_INTERVAL", "30.0"))
-    except ValueError:
-        print("✗ NCS_CAPTURE_INTERVAL / NCS_HEARTBEAT_INTERVAL harus angka.")
-        sys.exit(1)
-
+    capture_interval = _f("NCS_CAPTURE_INTERVAL", 1.0)
+    heartbeat_interval = _f("NCS_HEARTBEAT_INTERVAL", 30.0)
     if capture_interval <= 0 or heartbeat_interval <= 0:
         print("✗ Interval harus > 0.")
         sys.exit(1)
 
-    return api_url, session_id, token, capture_interval, heartbeat_interval, ocr_engine
+    return AgentConfig(
+        api_url=os.getenv("NCS_API_URL", "http://127.0.0.1:8000/api"),
+        capture_interval=capture_interval,
+        heartbeat_interval=heartbeat_interval,
+        ocr_engine=os.getenv("NCS_OCR_ENGINE", "none"),
+        ocr_lang=os.getenv("NCS_OCR_LANG", "eng"),
+        ocr_psm=int(os.getenv("NCS_OCR_PSM", "6")),
+        tesseract_path=os.getenv("NCS_OCR_TESSERACT_PATH"),
+    )
 
 
-def build_ocr_engine(name: str) -> OcrEngine:
+@dataclass
+class AgentConfig:
+    """Static agent settings — no session credentials here."""
+
+    api_url: str = "http://127.0.0.1:8000/api"
+    capture_interval: float = 1.0
+    heartbeat_interval: float = 30.0
+    ocr_engine: str = "none"
+    ocr_lang: str = "eng"
+    ocr_psm: int = 6
+    tesseract_path: str | None = None
+
+
+@dataclass
+class SessionCredential:
+    """Dynamic per-session credential. Supplied per run, never persisted."""
+
+    session_id: str
+    token: str
+
+    @property
+    def valid(self) -> bool:
+        return bool(self.session_id and self.token)
+
+
+def resolve_session_credential(args: argparse.Namespace | None = None) -> SessionCredential:
+    """Priority: CLI args > env vars (.env support for E2E testing).
+
+    Production: UI/API passes --session-id and --token per run, so assessor
+    never edits .env per session.
+    """
+    if args and getattr(args, "session_id", None) and getattr(args, "token", None):
+        return SessionCredential(session_id=args.session_id, token=args.token)
+    return SessionCredential(
+        session_id=os.getenv("NCS_SESSION_ID", ""),
+        token=os.getenv("NCS_API_TOKEN", ""),
+    )
+
+
+def build_ocr_engine(config: AgentConfig) -> OcrEngine:
     """Factory — swap engine by name without editing main loop."""
-    name = (name or "none").lower()
+    name = (config.ocr_engine or "none").lower()
     if name == "none":
         return NoopOcrEngine()
     if name == "tesseract":
         return TesseractEngine(
-            lang=os.getenv("NCS_OCR_LANG", "eng"),
-            psm=int(os.getenv("NCS_OCR_PSM", "6")),
+            lang=config.ocr_lang,
+            psm=config.ocr_psm,
+            tesseract_path=config.tesseract_path,
         )
     print(f"✗ OCR engine '{name}' belum tersedia, pakai noop.")
     return NoopOcrEngine()
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="NCS Analyzer Capture Agent")
+    parser.add_argument("--session-id", help="Assessment session ID (overrides env)")
+    parser.add_argument("--token", help="Agent token (overrides env)")
+    args = parser.parse_args()
+
     banner()
     load_env()
 
-    api_url, session_id, token, capture_interval, heartbeat_interval, ocr_name = load_config()
+    config = load_config()
+    cred = resolve_session_credential(args)
 
-    if not session_id or not token:
-        print("✗ NCS_SESSION_ID dan NCS_API_TOKEN harus diset di environment.")
+    if not cred.valid:
+        print("✗ Session ID dan token harus diset via --session-id/--token atau .env.")
         sys.exit(1)
 
     adb = find_adb()
     device_id = detect_device(adb)
 
     # Register agent
-    register_agent(api_url, session_id, device_id, token)
+    register_agent(config.api_url, cred.session_id, device_id, cred.token)
 
-    processor = FrameProcessor(ocr=build_ocr_engine(ocr_name))
-    print(f"\nStarting capture (interval={capture_interval}s, ocr={ocr_name}) in-memory...")
+    processor = FrameProcessor(ocr=build_ocr_engine(config))
+    print(f"\nStarting capture (interval={config.capture_interval}s, ocr={config.ocr_engine}) in-memory...")
     print("(Tekan Ctrl+C untuk menghentikan agent.)\n")
     last_heartbeat = time.time()
     try:
@@ -330,8 +399,8 @@ def main() -> None:
             try:
                 # Send heartbeat
                 now = time.time()
-                if now - last_heartbeat >= heartbeat_interval:
-                    if send_heartbeat(api_url, session_id, token):
+                if now - last_heartbeat >= config.heartbeat_interval:
+                    if send_heartbeat(config.api_url, cred.session_id, cred.token):
                         ts = datetime.now().strftime("%H:%M:%S")
                         print(f"[{ts}] ♥ Heartbeat sent")
                     last_heartbeat = now
@@ -343,7 +412,7 @@ def main() -> None:
                 print(f"[{ts}] Frame processed in-memory ({len(png)} bytes)")
                 # Send frame only when processor produced detections
                 if detections:
-                    ok = send_frame(api_url, session_id, token, {
+                    ok = send_frame(config.api_url, cred.session_id, cred.token, {
                         "device_id": device_id,
                         "frame_number": processor.processed,
                         "captured_at": datetime.now().isoformat(),
@@ -360,7 +429,7 @@ def main() -> None:
             except FileNotFoundError:
                 print("✗ ADB hilang selama running.")
                 break
-            time.sleep(capture_interval)
+            time.sleep(config.capture_interval)
     except KeyboardInterrupt:
         print()
     finally:

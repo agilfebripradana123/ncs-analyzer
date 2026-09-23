@@ -7,15 +7,18 @@ from datetime import datetime
 from pathlib import Path
 
 from agent import (
+    AgentConfig,
     FrameProcessor,
     NoopOcrEngine,
     OcrEngine,
     OcrResult,
+    SessionCredential,
     TesseractEngine,
     build_ocr_engine,
     load_config,
     load_env,
     normalize_ocr,
+    resolve_session_credential,
 )
 
 PNG = b"\x89PNG\r\n\x1a\nfake"
@@ -105,12 +108,17 @@ class TestOcrEngineAbstraction(unittest.TestCase):
         self.assertEqual(len(sent), 1)
 
     def test_build_ocr_engine_factory(self):
-        self.assertIsInstance(build_ocr_engine("none"), NoopOcrEngine)
-        self.assertIsInstance(build_ocr_engine("NONE"), NoopOcrEngine)
-        self.assertIsInstance(build_ocr_engine("unknown_engine"), NoopOcrEngine)
+        from agent import AgentConfig
+        self.assertIsInstance(build_ocr_engine(AgentConfig(ocr_engine="none")), NoopOcrEngine)
+        self.assertIsInstance(build_ocr_engine(AgentConfig(ocr_engine="NONE")), NoopOcrEngine)
+        self.assertIsInstance(build_ocr_engine(AgentConfig(ocr_engine="unknown_engine")), NoopOcrEngine)
 
     def test_tesseract_build(self):
-        self.assertIsInstance(build_ocr_engine("tesseract"), TesseractEngine)
+        from agent import AgentConfig
+        self.assertIsInstance(
+            build_ocr_engine(AgentConfig(ocr_engine="tesseract")),
+            TesseractEngine,
+        )
 
 
 class TestTesseractParse(unittest.TestCase):
@@ -144,6 +152,10 @@ class TestTesseractParse(unittest.TestCase):
 
     def test_frame_processor_with_tesseract_mock(self):
         class FakeTesseract(TesseractEngine):
+            def __init__(self):
+                super().__init__()
+                self.tesseract_cmd = "fake"
+
             def _run(self, png):
                 return (
                     "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
@@ -155,11 +167,61 @@ class TestTesseractParse(unittest.TestCase):
         self.assertEqual(det[0]["type"], "ocr_text")
         self.assertIn("secret", det[0]["text"])
 
+    def test_tesseract_resolve_explicit_path(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".exe") as tmp:
+            tmp_path = tmp.name
+        try:
+            resolved = TesseractEngine._resolve(tmp_path)
+            self.assertEqual(resolved, tmp_path)
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+    def test_tesseract_resolve_fallback_windows(self):
+        """If PATH has no tesseract, fallback to Windows default if exists."""
+        import unittest.mock as mock
+        with mock.patch("shutil.which", return_value=None):
+            with mock.patch("pathlib.Path.is_file") as mock_is_file:
+                mock_is_file.return_value = True
+                resolved = TesseractEngine._resolve(None)
+                self.assertEqual(resolved, TesseractEngine.WINDOWS_DEFAULT)
+
+    def test_tesseract_resolve_none_when_missing(self):
+        import unittest.mock as mock
+        with mock.patch("shutil.which", return_value=None):
+            with mock.patch("pathlib.Path.is_file", return_value=False):
+                self.assertIsNone(TesseractEngine._resolve(None))
+
+    def test_tesseract_run_subprocess_mock(self):
+        """Verify subprocess.run called with correct args, PNG via stdin."""
+        import unittest.mock as mock
+
+        class MockResult:
+            returncode = 0
+            stdout = b"level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"
+
+        # Bypass __init__ resolver — inject fake cmd directly so the
+        # test does not depend on system PATH or the real fallback.
+        eng = TesseractEngine.__new__(TesseractEngine)
+        eng.lang = "eng"
+        eng.psm = 6
+        eng.tesseract_cmd = "/fake/tesseract"
+        with mock.patch("subprocess.run", return_value=MockResult()) as mock_run:
+            tsv = eng._run(PNG)
+            self.assertIsNotNone(tsv)
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            self.assertEqual(call_args.kwargs["input"], PNG)
+            self.assertIn("/fake/tesseract", call_args.args[0][0])
+            self.assertIn("stdin", call_args.args[0])
+            self.assertIn("tsv", call_args.args[0])
+
 
 # -- config --
 class TestLoadConfig(unittest.TestCase):
     _keys = ("NCS_API_URL", "NCS_SESSION_ID", "NCS_API_TOKEN",
-             "NCS_CAPTURE_INTERVAL", "NCS_HEARTBEAT_INTERVAL", "NCS_OCR_ENGINE")
+             "NCS_CAPTURE_INTERVAL", "NCS_HEARTBEAT_INTERVAL",
+             "NCS_OCR_ENGINE", "NCS_OCR_LANG", "NCS_OCR_PSM", "NCS_OCR_TESSERACT_PATH")
 
     def setUp(self):
         self._saved = {k: os.environ.pop(k, None) for k in self._keys}
@@ -171,19 +233,73 @@ class TestLoadConfig(unittest.TestCase):
             else:
                 os.environ.pop(k, None)
 
-    def test_defaults(self):
-        api, sid, tok, cap, hb, ocr = load_config()
-        self.assertEqual(api, "http://127.0.0.1:8000/api")
-        self.assertEqual(ocr, "none")
+    def test_defaults_no_credentials_in_config(self):
+        """AgentConfig no longer holds session credentials — static only."""
+        cfg = load_config()
+        self.assertEqual(cfg.api_url, "http://127.0.0.1:8000/api")
+        self.assertEqual(cfg.ocr_engine, "none")
+        self.assertFalse(hasattr(cfg, "session_id"))
+        self.assertFalse(hasattr(cfg, "token"))
 
-    def test_custom(self):
+    def test_custom_ocr_engine(self):
         os.environ["NCS_OCR_ENGINE"] = "tesseract"
-        self.assertEqual(load_config()[5], "tesseract")
+        self.assertEqual(load_config().ocr_engine, "tesseract")
 
     def test_invalid_interval_exits(self):
         os.environ["NCS_CAPTURE_INTERVAL"] = "not_a_number"
         with self.assertRaises(SystemExit):
             load_config()
+
+
+class TestSessionCredential(unittest.TestCase):
+    _cred_keys = ("NCS_SESSION_ID", "NCS_API_TOKEN")
+
+    def setUp(self):
+        self._saved = {k: os.environ.pop(k, None) for k in self._cred_keys}
+
+    def tearDown(self):
+        for k, v in self._saved.items():
+            if v is not None:
+                os.environ[k] = v
+            else:
+                os.environ.pop(k, None)
+
+    def test_valid_from_env_as_fallback(self):
+        """E2E testing can still rely on .env for quick manual runs."""
+        os.environ["NCS_SESSION_ID"] = "42"
+        os.environ["NCS_API_TOKEN"] = "tok_abc"
+        cred = resolve_session_credential(None)
+        self.assertEqual(cred.session_id, "42")
+        self.assertTrue(cred.valid)
+
+    def test_invalid_when_empty(self):
+        self.assertFalse(resolve_session_credential(None).valid)
+
+    def test_cli_overrides_env(self):
+        """Production: CLI args win so assessor never edits .env per session."""
+        import argparse
+        os.environ["NCS_SESSION_ID"] = "from-env"
+        os.environ["NCS_API_TOKEN"] = "env-tok"
+        args = argparse.Namespace(session_id="from-cli", token="cli-tok")
+        cred = resolve_session_credential(args)
+        self.assertEqual(cred.session_id, "from-cli")
+        self.assertEqual(cred.token, "cli-tok")
+
+    def test_partial_cli_falls_back_to_env(self):
+        import argparse
+        os.environ["NCS_SESSION_ID"] = "env-sid"
+        os.environ["NCS_API_TOKEN"] = "env-tok"
+        args = argparse.Namespace(session_id="cli-sid", token=None)
+        cred = resolve_session_credential(args)
+        self.assertEqual(cred.session_id, "env-sid")
+
+    def test_build_ocr_uses_agent_config(self):
+        """OCR config lives in AgentConfig, not credential."""
+        from agent import AgentConfig
+        cfg = AgentConfig(ocr_engine="tesseract", ocr_lang="ind", ocr_psm=3)
+        eng = build_ocr_engine(cfg)
+        self.assertEqual(eng.lang, "ind")
+        self.assertEqual(eng.psm, 3)
 
 
 class TestLoadEnv(unittest.TestCase):
