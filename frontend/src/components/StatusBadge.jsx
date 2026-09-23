@@ -1,8 +1,11 @@
 import Badge from './Badge'
 
 const VARIANTS = {
+  pending_consent: 'yellow',
   pending: 'default',
   consent: 'blue',
+  consented: 'success',
+  in_progress: 'blue',
   active: 'blue',
   processing: 'blue',
   completed: 'success',
@@ -11,8 +14,11 @@ const VARIANTS = {
 }
 
 const LABELS = {
+  pending_consent: 'Menunggu Consent',
   pending: 'Menunggu',
   consent: 'Persetujuan',
+  consented: 'Consent Disetujui',
+  in_progress: 'Berlangsung',
   active: 'Aktif',
   processing: 'Diproses',
   completed: 'Selesai',

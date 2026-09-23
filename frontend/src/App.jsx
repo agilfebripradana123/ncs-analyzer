@@ -20,6 +20,19 @@ import AssessorReports from './pages/assessor/Reports'
 import AssessorDashboard from './pages/assessor/Dashboard'
 import Login from './pages/auth/Login'
 import ConsentPage from './pages/consent/ConsentPage'
+import Card from './components/Card'
+
+function ConsentResult({ type }) {
+  const ok = type === 'success'
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md text-center">
+        <h1 className="text-xl font-bold text-text-primary mb-2">{ok ? 'Persetujuan Diterima' : 'Persetujuan Ditolak'}</h1>
+        <p className="text-sm text-text-secondary">{ok ? 'Terima kasih. Assessment dapat dimulai.' : 'Assessment dibatalkan.'}</p>
+      </Card>
+    </div>
+  )
+}
 
 export default function App() {
   return (
@@ -27,6 +40,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/consent/success" element={<ConsentResult type="success" />} />
+          <Route path="/consent/declined" element={<ConsentResult type="declined" />} />
           <Route path="/consent/:token" element={<ConsentPage />} />
           <Route path="/admin" element={<ProtectedRoute role="admin"><AdminLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="dashboard" replace />} />

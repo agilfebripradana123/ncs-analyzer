@@ -135,7 +135,6 @@ export default function ConsentPage() {
             </h3>
             <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
               <li>File dan dokumen pribadi</li>
-              <li>Riwayat penjelajahan dan penanda</li>
               <li>Konten email dan pesan</li>
               <li>Foto dan media pribadi</li>
               <li>Kata sandi dan kredensial</li>

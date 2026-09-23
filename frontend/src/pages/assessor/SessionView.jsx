@@ -76,10 +76,10 @@ export default function SessionView() {
             {session.assessment?.assessment_code || `#${session.assessment_id}`} — {session.assessment?.employee?.name || 'Karyawan'}
           </p>
 
-          {session.session_token ? (
+          {session.consent_token ? (
             <div className="flex flex-col items-center gap-4 mb-6">
               <div className="p-4 md:p-6 bg-surface-secondary rounded-md border border-border">
-                <QRCodeSVG value={session.session_token} size={160} className="md:w-[200px] md:h-[200px]" />
+                <QRCodeSVG value={`${window.location.origin}/consent/${session.consent_token}`} size={160} className="md:w-[200px] md:h-[200px]" />
               </div>
               <p className="text-sm text-text-secondary">
                 Scan QR untuk melanjutkan sesi

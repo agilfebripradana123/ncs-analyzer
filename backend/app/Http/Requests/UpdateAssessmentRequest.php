@@ -14,8 +14,7 @@ class UpdateAssessmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => 'sometimes|string',
-            'status' => 'sometimes|in:pending,consent,active,processing,completed,cancelled,expired',
+            'status' => 'sometimes|in:pending_consent,consented,active,processing,completed,cancelled,expired',
         ];
     }
 }

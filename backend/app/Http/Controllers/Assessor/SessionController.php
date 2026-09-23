@@ -44,6 +44,7 @@ class SessionController extends Controller
 
         $session = $assessment->session()->create([
             'session_token' => Str::random(64),
+            'consent_token' => 'NCS-' . strtoupper(Str::random(6)),
             'status' => 'pending',
             'started_at' => now(),
             'expires_at' => $validated['expires_at'] ?? now()->addHours(2),

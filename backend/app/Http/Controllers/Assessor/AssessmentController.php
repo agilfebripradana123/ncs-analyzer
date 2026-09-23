@@ -8,13 +8,14 @@ use App\Http\Requests\UpdateAssessmentRequest;
 use App\Http\Resources\AssessmentResource;
 use App\Models\Assessment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class AssessmentController extends Controller
 {
     public function index(Request $request)
     {
         $query = Assessment::where('assessor_id', $request->user()->id)
-            ->with(['employee', 'consent', 'session', 'riskScore'])
+            ->with(['employee', 'consent', 'session', 'riskScore', 'assessor'])
             ->withCount(['visualFindings', 'logFindings']);
 
         $sortBy = $request->input('sort', 'created_at');
@@ -30,15 +31,31 @@ class AssessmentController extends Controller
     public function store(StoreAssessmentRequest $request)
     {
         $assessment = Assessment::create([
-            ...$request->validated(),
+            'employee_id' => $request->validated('employee_id'),
             'assessor_id' => $request->user()->id,
-            'status' => 'pending',
+            'status' => 'pending_consent',
         ]);
 
+        $session = $assessment->session()->create([
+            'session_token' => Str::random(64),
+            'consent_token' => 'NCS-' . strtoupper(Str::random(6)),
+            'status' => 'pending',
+            'started_at' => now(),
+            'expires_at' => now()->addMinutes(30),
+        ]);
+
+        $assessment->load('employee');
+
         return response()->json([
-            'success' => true,
-            'message' => 'Assessment created',
-            'data' => new AssessmentResource($assessment),
+            'message' => 'Penilaian berhasil dibuat',
+            'data' => [
+                'id' => $assessment->id,
+                'assessment_code' => $assessment->assessment_code,
+                'employee' => $assessment->employee->name,
+                'status' => $assessment->status,
+                'session_code' => $session->consent_token,
+                'consent_url' => url('/consent/' . $session->consent_token),
+            ],
         ], 201);
     }
 
@@ -48,7 +65,7 @@ class AssessmentController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new AssessmentResource($assessment->load(['employee', 'consent', 'session', 'riskScore', 'report'])),
+            'data' => new AssessmentResource($assessment->load(['employee', 'consent', 'session', 'riskScore', 'report', 'assessor'])),
         ]);
     }
 
@@ -70,6 +87,10 @@ class AssessmentController extends Controller
         $this->authorize('update', $assessment);
 
         $assessment->update(['status' => 'active', 'started_at' => now()]);
+        
+        if ($session = $assessment->session) {
+            $session->update(['status' => 'active']);
+        }
 
         return response()->json([
             'success' => true,

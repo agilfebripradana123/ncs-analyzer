@@ -15,7 +15,6 @@ class StoreAssessmentRequest extends FormRequest
     {
         return [
             'employee_id' => 'required|exists:employees,id',
-            'title' => 'required|string',
         ];
     }
 }

@@ -11,10 +11,12 @@ class SessionResource extends JsonResource
         return [
             'id' => $this->id,
             'session_token' => $this->session_token,
+            'consent_token' => $this->consent_token,
             'status' => $this->status,
             'started_at' => $this->started_at?->toISOString(),
             'expires_at' => $this->expires_at?->toISOString(),
             'ended_at' => $this->ended_at?->toISOString(),
+            'consent_given_at' => $this->consent_given_at?->toISOString(),
             'assessment_id' => $this->assessment_id,
             'assessment' => $this->whenLoaded('assessment', function () {
                 return [

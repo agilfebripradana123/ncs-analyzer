@@ -41,10 +41,6 @@ export default function Assessments() {
 
   useEffect(() => {
     fetchAssessments()
-  }, [])
-
-  useEffect(() => {
-    fetchAssessments(meta?.current_page || 1, search)
   }, [sortBy, sortOrder])
 
   const handleSort = (key) => {

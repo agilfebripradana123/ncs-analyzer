@@ -6,10 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class Assessment extends Model
 {
+    protected static function booted(): void
+    {
+        static::creating(function ($assessment) {
+            if (!$assessment->assessment_code) {
+                $last = static::lockForUpdate()->latest('id')->value('id');
+                $num = $last ? $last + 1 : 1;
+                $assessment->assessment_code = sprintf('ASS-%05d', $num);
+            }
+        });
+    }
     protected $fillable = [
         'employee_id',
         'assessor_id',
-        'title',
         'assessment_code',
         'status',
         'started_at',

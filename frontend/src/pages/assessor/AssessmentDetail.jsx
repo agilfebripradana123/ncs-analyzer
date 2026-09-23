@@ -26,17 +26,26 @@ export default function AssessmentDetail() {
   const [session, setSession] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
 
-  const fetchDetail = async () => {
-    setLoading(true)
-    setError(null)
+  const fetchDetail = async (silent = false) => {
+    if (!silent) {
+      setLoading(true)
+      setError(null)
+    }
     try {
       const { data } = await api.get(`/assessor/assessments/${id}`)
-      setAssessment(data.data)
+      if (silent) {
+        setAssessment((prev) => (JSON.stringify(prev) === JSON.stringify(data.data) ? prev : data.data))
+      } else {
+        setAssessment(data.data)
+        if (['pending_consent', 'consented'].includes(data.data?.status)) fetchSession()
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Gagal memuat detail')
-      toast.error(err.response?.data?.message || 'Gagal memuat detail')
+      if (!silent) {
+        setError(err.response?.data?.message || 'Gagal memuat detail')
+        toast.error(err.response?.data?.message || 'Gagal memuat detail')
+      }
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
@@ -61,10 +70,14 @@ export default function AssessmentDetail() {
     } catch {}
   }
 
-  const fetchSession = async () => {
+  const fetchSession = async (silent = false) => {
     try {
       const { data } = await api.get(`/assessor/assessments/${id}/session`)
-      setSession(data.data)
+      if (silent) {
+        setSession((prev) => (JSON.stringify(prev) === JSON.stringify(data.data) ? prev : data.data))
+      } else {
+        setSession(data.data)
+      }
     } catch {}
   }
 
@@ -73,8 +86,19 @@ export default function AssessmentDetail() {
     if (activeTab === 'findings') fetchFindings()
     if (activeTab === 'risk') fetchRiskScore()
     if (activeTab === 'report') fetchReport()
-    if (activeTab === 'session') fetchSession()
+    if (activeTab === 'session' && !session) fetchSession()
   }, [activeTab])
+
+  // Auto-refresh saat menunggu consent karyawan
+  useEffect(() => {
+    if (loading || !assessment) return
+    if (!['pending_consent', 'consented'].includes(assessment?.status)) return
+    const t = setInterval(() => {
+      fetchDetail(true)
+      fetchSession(true)
+    }, 5000)
+    return () => clearInterval(t)
+  }, [assessment?.status, loading])
 
   const handleAction = async (action) => {
     setActionLoading(true)
@@ -95,7 +119,7 @@ export default function AssessmentDetail() {
 
   const a = assessment
   const status = a.status
-  const canStart = ['pending', 'consent'].includes(status)
+  const canStart = status === 'consented'
   const canComplete = ['active', 'processing'].includes(status)
   const canCalculate = ['active', 'processing'].includes(status) && !riskScore
 
@@ -184,6 +208,12 @@ export default function AssessmentDetail() {
                   <div className="flex justify-between"><span className="text-text-secondary">Status</span><span className="text-text-primary">{a.session?.status || '-'}</span></div>
                   <div className="flex justify-between"><span className="text-text-secondary">Persetujuan</span><span className="text-text-primary">{a.consent?.status || '-'}</span></div>
                 </div>
+                {a.session?.consent_token && (
+                  <div className="mt-4 p-4 bg-surface-secondary rounded-md border border-border flex flex-col items-center gap-3">
+                    <QRCodeSVG value={`${window.location.origin}/consent/${a.session.consent_token}`} size={140} />
+                    <p className="text-xs text-text-secondary">Scan QR untuk consent karyawan</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -213,10 +243,10 @@ export default function AssessmentDetail() {
                     <p className="text-sm text-text-primary">{session.ended_at ? new Date(session.ended_at).toLocaleString('id-ID') : '-'}</p>
                   </div>
                 </div>
-                {session.token && (
+                {session.consent_token && (
                   <div className="mt-4 p-4 md:p-6 bg-surface-secondary rounded-md border border-border flex flex-col items-center gap-3 max-w-xs">
                     <QrCode size={20} className="text-text-secondary" />
-                    <QRCodeSVG value={session.token} size={160} />
+                    <QRCodeSVG value={`${window.location.origin}/consent/${session.consent_token}`} size={160} />
                     <p className="text-xs text-text-secondary">Pindai untuk melanjutkan</p>
                   </div>
                 )}

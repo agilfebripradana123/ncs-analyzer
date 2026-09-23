@@ -24,7 +24,7 @@ class ConsentController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        $assessment->update(['status' => 'consent']);
+        $assessment->update(['status' => 'consented']);
 
         return response()->json([
             'success' => true,

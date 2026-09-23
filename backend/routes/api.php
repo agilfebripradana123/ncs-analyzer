@@ -14,6 +14,10 @@ use App\Http\Controllers\Assessor\SessionController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/consent/{token}', [\App\Http\Controllers\ConsentController::class, 'show']);
+Route::post('/consent/{token}/approve', [\App\Http\Controllers\ConsentController::class, 'approve']);
+Route::post('/consent/{token}/decline', [\App\Http\Controllers\ConsentController::class, 'decline']);
+
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
