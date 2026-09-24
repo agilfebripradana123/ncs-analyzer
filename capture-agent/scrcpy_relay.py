@@ -4,6 +4,7 @@
 import argparse
 import asyncio
 import base64
+import os
 import shutil
 import struct
 import subprocess
@@ -43,12 +44,18 @@ def push_scrcpy_server(adb: str, device: str, scrcpy_dir: Path) -> None:
 
 
 def start_scrcpy_server(adb: str, device: str) -> None:
+    # Kill stale server from previous crash
+    subprocess.run([adb, "-s", device, "shell", "killall", "-9", "app_process"], capture_output=True)
+    subprocess.run([adb, "-s", device, "forward", "--remove", "tcp:27183"], capture_output=True)
+    time.sleep(0.3)
+    # i_frame_interval=1 -> IDR every ~1s so browsers joining mid-stream sync fast
     cmd = (
         f"CLASSPATH={SCRCPY_SERVER_DEVICE} app_process / "
         f"com.genymobile.scrcpy.Server 3.3.4 "
         f"log_level=info video=true audio=false "
         f"video_codec=h264 max_size=1024 video_bit_rate=2000000 "
-        f"max_fps=15 tunnel_forward=true control=false display_id=0 cleanup=true"
+        f"max_fps=15 video_i_frame_interval=1 "
+        f"tunnel_forward=true control=false display_id=0 cleanup=true"
     )
     proc = subprocess.Popen([adb, "-s", device, "shell", cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     time.sleep(1.5)
@@ -65,17 +72,16 @@ def setup_adb_forward(adb: str, device: str, port: int = 27183) -> None:
 
 
 def build_avcc(sps: bytes, pps: bytes) -> bytes:
-    # sps/pps include NAL header (0x67 / 0x68)
     avcc = bytearray()
-    avcc.append(0x01)  # configurationVersion
-    avcc.append(sps[1])  # AVCProfileIndication
-    avcc.append(sps[2])  # profile_compatibility
-    avcc.append(sps[3])  # AVCLevelIndication
-    avcc.append(0xFF)  # lengthSizeMinusOne (4 bytes)
-    avcc.append(0xE1)  # numOfSPS = 1
+    avcc.append(0x01)
+    avcc.append(sps[1])
+    avcc.append(sps[2])
+    avcc.append(sps[3])
+    avcc.append(0xFF)
+    avcc.append(0xE1)
     avcc.extend(struct.pack(">H", len(sps)))
     avcc.extend(sps)
-    avcc.append(0x01)  # numOfPPS = 1
+    avcc.append(0x01)
     avcc.extend(struct.pack(">H", len(pps)))
     avcc.extend(pps)
     return bytes(avcc)
@@ -91,6 +97,36 @@ def annexb_to_avc_frame(nals: list[bytes]) -> bytes:
         out.extend(struct.pack(">I", len(nal)))
         out.extend(nal)
     return bytes(out)
+
+
+def split_nals(buf: bytes) -> tuple[list[bytes], int]:
+    """Split Annex B buffer into NAL units. Returns (nals, consumed_bytes)."""
+    nals = []
+    starts = []
+    i = 0
+    while i < len(buf) - 2:
+        if buf[i] == 0 and buf[i+1] == 0:
+            if buf[i+2] == 1:
+                starts.append((i, 3))
+                i += 3
+                continue
+            elif i + 3 < len(buf) and buf[i+2] == 0 and buf[i+3] == 1:
+                starts.append((i, 4))
+                i += 4
+                continue
+        i += 1
+
+    if len(starts) < 2:
+        return [], 0
+
+    for j in range(len(starts) - 1):
+        nal_start = starts[j][0] + starts[j][1]
+        nal_end = starts[j+1][0]
+        if nal_end > nal_start:
+            nals.append(buf[nal_start:nal_end])
+
+    consumed = starts[-1][0]
+    return nals, consumed
 
 
 async def read_h264_stream(port: int, clients: set, state: dict):
@@ -109,69 +145,31 @@ async def read_h264_stream(port: int, clients: set, state: dict):
     buf = bytearray()
     try:
         while True:
-            chunk = await reader.read(65536)
+            try:
+                chunk = await asyncio.wait_for(reader.read(65536), timeout=5.0)
+            except asyncio.TimeoutError:
+                continue
             if not chunk:
                 print("  Stream EOF")
                 break
             buf.extend(chunk)
 
-            # scan Annex B start codes, extract NALs
-            # process only when we have at least 2 start codes worth
-            nals: list[bytes] = []
-            # find all start code positions
-            positions: list[int] = []
-            i = 0
-            while i < len(buf) - 3:
-                if buf[i] == 0 and buf[i + 1] == 0 and buf[i + 2] == 0 and buf[i + 3] == 1:
-                    positions.append(i)
-                    i += 4
-                elif buf[i] == 0 and buf[i + 1] == 0 and buf[i + 2] == 1:
-                    positions.append(i)
-                    i += 3
-                else:
-                    i += 1
-
-            if len(positions) < 1:
-                # no start code yet, keep buffering (cap at 256k)
-                if len(buf) > 512 * 1024:
-                    buf = buf[-256 * 1024 :]
-                continue
-
-            # we have at least one NAL, but the last NAL is incomplete (no next start code)
-            # so process all except last
-            if len(positions) == 1:
-                # need more data to know NAL boundary
-                if len(buf) > 512 * 1024:
-                    buf = buf[-256 * 1024 :]
-                continue
-
-            for idx in range(len(positions) - 1):
-                start = positions[idx]
-                # skip start code
-                sc_len = 4 if buf[start + 2] == 0 else 3
-                nal_start = start + sc_len
-                nal_end = positions[idx + 1]
-                nal = bytes(buf[nal_start:nal_end])
-                if nal:
-                    nals.append(nal)
-
-            # keep tail from last start code onward
-            buf = buf[positions[-1] :]
-
+            nals, consumed = split_nals(bytes(buf))
             if not nals:
+                if len(buf) > 2 * 1024 * 1024:
+                    buf = buf[-1024 * 1024:]
                 continue
+            buf = buf[consumed:]
 
-            # inspect NAL types, capture SPS/PPS
-            frame_nals: list[bytes] = []
+            frame_nals = []
             for nal in nals:
                 nal_type = nal[0] & 0x1F
-                if nal_type == 7:  # SPS
+                if nal_type == 7:
                     state["sps"] = nal
-                elif nal_type == 8:  # PPS
+                elif nal_type == 8:
                     state["pps"] = nal
                 frame_nals.append(nal)
 
-            # build avcc on first SPS+PPS
             if state["sps"] and state["pps"] and state["avcc"] is None:
                 try:
                     avcc = build_avcc(state["sps"], state["pps"])
@@ -187,20 +185,15 @@ async def read_h264_stream(port: int, clients: set, state: dict):
                             dead.add(ws)
                     for d in dead:
                         clients.discard(d)
-                    print(f"  SPS/PPS captured codec={codec} avcc={len(avcc)}B, sent config to {len(clients)} clients")
+                    print(f"  SPS/PPS captured codec={codec} avcc={len(avcc)}B")
                 except Exception as e:
                     print(f"  avcc build failed: {e}")
 
             if state["avcc"] is None:
-                continue  # wait for config before streaming
+                continue
 
-            # send frame as AVC (length-prefixed)
             avc = annexb_to_avc_frame(frame_nals)
-            # NAL type 5 = IDR keyframe
             is_key = any((n[0] & 0x1F) == 5 for n in frame_nals)
-            # prefix 1 byte key flag + 4 byte timestamp? keep simple: 1 byte type
-            # Instead send binary as-is; frontend treats all as decodable, but mark key via first byte?
-            # We send 1-byte header (0x00 = delta, 0x01 = key) + avc payload so frontend can set EncodedVideoChunk type
             payload = (b"\x01" if is_key else b"\x00") + avc
             dead = set()
             for ws in list(clients):
@@ -217,9 +210,6 @@ async def read_h264_stream(port: int, clients: set, state: dict):
         raise
     except Exception as e:
         print(f"  Stream reader error: {e}")
-        import traceback
-
-        traceback.print_exc()
     finally:
         try:
             writer.close()
@@ -231,7 +221,6 @@ async def read_h264_stream(port: int, clients: set, state: dict):
 async def ws_handler(websocket, clients: set, state: dict):
     clients.add(websocket)
     print(f"  Client connected ({len(clients)} total)")
-    # send config immediately if available
     if state.get("avcc"):
         try:
             msg = '{"type":"config","codec":"' + state["codec"] + '","desc":"' + base64.b64encode(state["avcc"]).decode() + '"}'
@@ -248,9 +237,30 @@ async def ws_handler(websocket, clients: set, state: dict):
         print(f"  Client disconnected ({len(clients)} total)")
 
 
+def free_port(port: int) -> None:
+    """Kill any stale process listening on port (stale relay from crashed run)."""
+    if os.name != "nt":
+        return
+    try:
+        out = subprocess.run(
+            ["netstat", "-ano", "-p", "tcp"], capture_output=True, text=True, timeout=8
+        ).stdout
+    except Exception:
+        return
+    for line in out.splitlines():
+        if f"127.0.0.1:{port}" in line and "LISTENING" in line:
+            pid = line.split()[-1]
+            print(f"  Port {port} busy (PID {pid}) — killing stale relay...")
+            subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
+            time.sleep(0.5)
+
+
 async def run_relay(device_port: int, ws_port: int):
     clients: set = set()
     state: dict = {"sps": None, "pps": None, "avcc": None, "codec": None}
+
+    # Run in executor thread so sync free_port doesn't block event loop
+    await asyncio.get_running_loop().run_in_executor(None, free_port, ws_port)
 
     async def handler(ws):
         await ws_handler(ws, clients, state)
@@ -265,9 +275,10 @@ async def run_relay(device_port: int, ws_port: int):
                 break
             except Exception as e:
                 print(f"  Relay error: {e}, retrying in 2s...")
-            await asyncio.sleep(2)
-            # reset state on reconnect so SPS/PPS recaptured
-            state["sps"] = state["pps"] = state["avcc"] = state["codec"] = None
+                await asyncio.sleep(2)
+                continue
+            # Stream ended (EOF/server died) — server process gone, sleep longer
+            await asyncio.sleep(5)
 
 
 def main():

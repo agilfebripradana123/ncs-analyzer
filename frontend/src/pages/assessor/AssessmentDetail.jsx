@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, QrCode } from 'lucide-react'
 import api from '../../api/axios'
@@ -28,7 +28,12 @@ export default function AssessmentDetail() {
   const [report, setReport] = useState(null)
   const [session, setSession] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [agentCmd, setAgentCmd] = useState(null)
   const { status: deviceStatus, lastSeen } = useDeviceStatus(session)
+  const wsUrl = useMemo(
+    () => (deviceStatus === 'connected' ? 'ws://127.0.0.1:8091' : null),
+    [deviceStatus]
+  )
 
   const fetchDetail = async (silent = false) => {
     if (!silent) {
@@ -94,6 +99,13 @@ export default function AssessmentDetail() {
     if (activeTab === 'session' && !session) fetchSession()
   }, [activeTab])
 
+  // Auto-refresh visual findings while on live tab
+  useEffect(() => {
+    if (activeTab !== 'live') return
+    const t = setInterval(fetchFindings, 3000)
+    return () => clearInterval(t)
+  }, [activeTab])
+
   // Auto-refresh saat menunggu consent karyawan
   useEffect(() => {
     if (loading || !assessment) return
@@ -121,6 +133,21 @@ export default function AssessmentDetail() {
       await Promise.all([fetchDetail(), fetchSession()])
     } catch (err) {
       toast.error(err.response?.data?.message || `Gagal ${action}`)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleIssueAgentToken = async () => {
+    setActionLoading(true)
+    try {
+      const { data } = await api.post(`/assessor/assessments/${id}/agent/token`)
+      const { session_id, agent_token } = data.data
+      setAgentCmd({ session_id, agent_token })
+      await navigator.clipboard.writeText(`python agent.py --session-id ${session_id} --token ${agent_token}`)
+      toast.success('Command disalin ke clipboard')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal generate agent token')
     } finally {
       setActionLoading(false)
     }
@@ -242,14 +269,14 @@ export default function AssessmentDetail() {
                 </span>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <LiveScreen streamUrl={deviceStatus === 'connected' ? 'http://127.0.0.1:8090/stream.mjpeg' : null} />
+                <LiveScreen wsUrl={wsUrl} />
                 <div>
                   <h3 className="font-semibold text-text-primary mb-3">Visual Findings</h3>
-                  {findings.filter(f => f.type === 'visual').length === 0 ? (
+                  {findings.filter(f => f.rule?.type === 'visual').length === 0 ? (
                     <p className="text-sm text-text-secondary">No visual findings yet</p>
                   ) : (
                     <div className="space-y-2 max-h-[32rem] overflow-y-auto">
-                      {findings.filter(f => f.type === 'visual').map(f => <FindingCard key={f.id} finding={f} />)}
+                      {findings.filter(f => f.rule?.type === 'visual').map(f => <FindingCard key={f.id} finding={f} />)}
                     </div>
                   )}
                 </div>
@@ -282,6 +309,32 @@ export default function AssessmentDetail() {
                     <p className="text-sm text-text-primary">{session.ended_at ? new Date(session.ended_at).toLocaleString('id-ID') : '-'}</p>
                   </div>
                 </div>
+                {['active', 'processing'].includes(status) && (
+                  <div className="p-4 bg-surface-secondary rounded-md border border-border space-y-3">
+                    <div>
+                      <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">Jalankan Capture Agent</p>
+                      <p className="text-xs text-text-secondary">
+                        Jalankan command ini di mesin capture (folder capture-agent). Tanpa edit .env manual.
+                      </p>
+                    </div>
+                    {agentCmd ? (
+                      <>
+                        <code className="block p-3 bg-surface rounded-md text-xs text-text-primary break-all select-all">
+                          python agent.py --session-id {agentCmd.session_id} --token "{agentCmd.agent_token}"
+                        </code>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="secondary" onClick={() => navigator.clipboard.writeText(`python agent.py --session-id ${agentCmd.session_id} --token "${agentCmd.agent_token}"`)}>
+                            Salin Ulang
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <Button size="sm" onClick={handleIssueAgentToken} loading={actionLoading}>
+                        Generate Command
+                      </Button>
+                    )}
+                  </div>
+                )}
                 {session.consent_token && (
                   <div className="mt-4 p-4 md:p-6 bg-surface-secondary rounded-md border border-border flex flex-col items-center gap-3 max-w-xs">
                     <QrCode size={20} className="text-text-secondary" />
