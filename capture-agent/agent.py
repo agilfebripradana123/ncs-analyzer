@@ -21,7 +21,7 @@ import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from pathlib import Path
 from urllib import request as urlreq, error as urlerr
 
@@ -261,7 +261,6 @@ class StreamHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=FRAME')
         self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
-        self.send_header('Connection', 'close')
         self.end_headers()
         try:
             while True:
@@ -269,21 +268,30 @@ class StreamHandler(BaseHTTPRequestHandler):
                     data = _latest_frame
                     ts = _latest_ts
                 if data:
-                    chunk = (
-                        f'\r\n--FRAME\r\n'
-                        f'Content-Type: image/png\r\n'
-                        f'Content-Length: {len(data)}\r\n'
-                        f'X-Timestamp: {ts:.3f}\r\n'
-                        f'\r\n'
-                    ).encode('ascii') + data + b'\r\n'
-                    self.wfile.write(chunk)
+                    self.wfile.write(b'--FRAME\r\n')
+                    self.wfile.write(f'Content-Type: image/png\r\nContent-Length: {len(data)}\r\n\r\n'.encode('ascii'))
+                    self.wfile.write(data)
+                    self.wfile.write(b'\r\n')
                     self.wfile.flush()
-                time.sleep(0.05)
-        except (ConnectionResetError, BrokenPipeError, TimeoutError):
+                time.sleep(0.1)  # 10fps fallback, not 20fps
+        except (ConnectionResetError, BrokenPipeError, TimeoutError, OSError):
             pass
 
     def log_message(self, _format, *_args):
         pass
+
+
+def start_scrcpy_relay(device_id: str, ws_port: int) -> subprocess.Popen | None:
+    """Spawn scrcpy_relay.py as subprocess. Forensic loop continues independently."""
+    relay_path = Path(__file__).parent / "scrcpy_relay.py"
+    if not relay_path.is_file():
+        print("† scrcpy_relay.py not found, skipping live preview relay")
+        return None
+    proc = subprocess.Popen(
+        [sys.executable, str(relay_path), "--device", device_id, "--ws-port", str(ws_port)],
+        stdout=None, stderr=None,  # inherit terminal output for relay logs
+    )
+    return proc
 
 
 class FrameProcessor:
@@ -416,6 +424,11 @@ def main() -> None:
     parser.add_argument("--stream-port", type=int, default=int(os.getenv("NCS_STREAM_PORT", "8090")),
                         help="MJPEG stream port (default 8090)")
     parser.add_argument("--no-stream", action="store_true", help="Disable live screen MJPEG stream")
+    parser.add_argument("--live-mode", choices=["mjpeg", "scrcpy", "both"],
+                        default=os.getenv("NCS_LIVE_MODE", "scrcpy"),
+                        help="Live preview backend (default scrcpy)")
+    parser.add_argument("--ws-port", type=int, default=int(os.getenv("NCS_WS_PORT", "8091")),
+                        help="WebSocket relay port for scrcpy mode (default 8091)")
     args = parser.parse_args()
 
     banner()
@@ -434,12 +447,17 @@ def main() -> None:
     # Register agent
     register_agent(config.api_url, cred.session_id, device_id, cred.token)
 
-    stream_server: HTTPServer | None = None
+    stream_server: ThreadingHTTPServer | None = None
+    relay_proc: subprocess.Popen | None = None
     if not args.no_stream:
-        stream_server = HTTPServer(('127.0.0.1', args.stream_port), StreamHandler)
-        threading.Thread(target=stream_server.serve_forever, daemon=True).start()
-        print(f"\nLive screen: http://127.0.0.1:{args.stream_port}/stream.mjpeg")
-        print("(React dashboard memutar stream ini — tidak masuk pipeline forensic.)\n")
+        if args.live_mode in ("scrcpy", "both"):
+            relay_proc = start_scrcpy_relay(device_id, args.ws_port)
+            print(f"\nLive screen (scrcpy): ws://127.0.0.1:{args.ws_port}")
+            print("(Relay terpisah dari pipeline forensic — OCR/detections tetap jalan.)\n")
+        if args.live_mode in ("mjpeg", "both"):
+            stream_server = ThreadingHTTPServer(('127.0.0.1', args.stream_port), StreamHandler)
+            threading.Thread(target=stream_server.serve_forever, daemon=True).start()
+            print(f"\nLive screen (mjpeg fallback): http://127.0.0.1:{args.stream_port}/stream.mjpeg\n")
 
     processor = FrameProcessor(ocr=build_ocr_engine(config))
     print(f"\nStarting capture (interval={config.capture_interval}s, ocr={config.ocr_engine}) in-memory...")
@@ -488,6 +506,16 @@ def main() -> None:
     except KeyboardInterrupt:
         print()
     finally:
+        if relay_proc:
+            relay_proc.terminate()
+            relay_proc.wait(timeout=5)
+            try:
+                subprocess.run(
+                    [str(adb), "-s", device_id, "forward", "--remove", "tcp:27183"],
+                    capture_output=True,
+                )
+            except Exception:
+                pass
         if stream_server:
             stream_server.shutdown()
         print(f"\nBerhenti. Total frame diproses: {processor.processed}")
