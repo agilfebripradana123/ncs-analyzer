@@ -17,6 +17,7 @@ import AssessorEmployees from './pages/assessor/Employees'
 import AssessorSessions from './pages/assessor/Sessions'
 import AssessorFindings from './pages/assessor/Findings'
 import AssessorReports from './pages/assessor/Reports'
+import ReportDetail from './pages/assessor/ReportDetail'
 import AssessorDashboard from './pages/assessor/Dashboard'
 import Login from './pages/auth/Login'
 import ConsentPage from './pages/consent/ConsentPage'
@@ -62,6 +63,7 @@ export default function App() {
             <Route path="sessions/:id" element={<SessionView />} />
             <Route path="findings" element={<AssessorFindings />} />
             <Route path="reports" element={<AssessorReports />} />
+            <Route path="reports/:id" element={<ReportDetail />} />
           </Route>
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="*" element={<Navigate to="/login" />} />

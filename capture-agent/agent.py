@@ -17,9 +17,11 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib import request as urlreq, error as urlerr
 
@@ -245,6 +247,45 @@ def capture_frame(adb: Path, device_id: str) -> bytes:
     return result.stdout
 
 
+_latest_frame: bytes = b''
+_latest_ts: float = 0.0
+_frame_lock = threading.Lock()
+
+
+class StreamHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != '/stream.mjpeg':
+            self.send_response(404)
+            self.end_headers()
+            return
+        self.send_response(200)
+        self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=FRAME')
+        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+        self.send_header('Connection', 'close')
+        self.end_headers()
+        try:
+            while True:
+                with _frame_lock:
+                    data = _latest_frame
+                    ts = _latest_ts
+                if data:
+                    chunk = (
+                        f'\r\n--FRAME\r\n'
+                        f'Content-Type: image/png\r\n'
+                        f'Content-Length: {len(data)}\r\n'
+                        f'X-Timestamp: {ts:.3f}\r\n'
+                        f'\r\n'
+                    ).encode('ascii') + data + b'\r\n'
+                    self.wfile.write(chunk)
+                    self.wfile.flush()
+                time.sleep(0.05)
+        except (ConnectionResetError, BrokenPipeError, TimeoutError):
+            pass
+
+    def log_message(self, _format, *_args):
+        pass
+
+
 class FrameProcessor:
     """In-memory sink. OCR produces normalized detections.
 
@@ -372,6 +413,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="NCS Analyzer Capture Agent")
     parser.add_argument("--session-id", help="Assessment session ID (overrides env)")
     parser.add_argument("--token", help="Agent token (overrides env)")
+    parser.add_argument("--stream-port", type=int, default=int(os.getenv("NCS_STREAM_PORT", "8090")),
+                        help="MJPEG stream port (default 8090)")
+    parser.add_argument("--no-stream", action="store_true", help="Disable live screen MJPEG stream")
     args = parser.parse_args()
 
     banner()
@@ -390,6 +434,13 @@ def main() -> None:
     # Register agent
     register_agent(config.api_url, cred.session_id, device_id, cred.token)
 
+    stream_server: HTTPServer | None = None
+    if not args.no_stream:
+        stream_server = HTTPServer(('127.0.0.1', args.stream_port), StreamHandler)
+        threading.Thread(target=stream_server.serve_forever, daemon=True).start()
+        print(f"\nLive screen: http://127.0.0.1:{args.stream_port}/stream.mjpeg")
+        print("(React dashboard memutar stream ini — tidak masuk pipeline forensic.)\n")
+
     processor = FrameProcessor(ocr=build_ocr_engine(config))
     print(f"\nStarting capture (interval={config.capture_interval}s, ocr={config.ocr_engine}) in-memory...")
     print("(Tekan Ctrl+C untuk menghentikan agent.)\n")
@@ -407,6 +458,10 @@ def main() -> None:
 
                 # Capture frame -> in-memory -> FrameProcessor
                 png = capture_frame(adb, device_id)
+                if not args.no_stream:
+                    with _frame_lock:
+                        _latest_frame = png
+                        _latest_ts = time.time()
                 detections = processor.on_frame(png, datetime.now())
                 ts = datetime.now().strftime("%H:%M:%S")
                 print(f"[{ts}] Frame processed in-memory ({len(png)} bytes)")
@@ -433,6 +488,8 @@ def main() -> None:
     except KeyboardInterrupt:
         print()
     finally:
+        if stream_server:
+            stream_server.shutdown()
         print(f"\nBerhenti. Total frame diproses: {processor.processed}")
         sys.exit(0)
 

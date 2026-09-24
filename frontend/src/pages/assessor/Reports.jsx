@@ -3,10 +3,21 @@ import { useNavigate } from 'react-router-dom'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
+import Badge from '../../components/Badge'
 import SearchInput from '../../components/SearchInput'
 import DataTable from '../../components/DataTable'
 import LoadingState from '../../components/LoadingState'
 import EmptyState from '../../components/EmptyState'
+
+const severityVariant = (sev) => {
+  switch ((sev || '').toLowerCase()) {
+    case 'critical': return 'danger'
+    case 'high': return 'high'
+    case 'medium': return 'warning'
+    case 'low': return 'success'
+    default: return 'default'
+  }
+}
 
 const formatDateTime = (iso) => {
   if (!iso) return '-'
@@ -74,10 +85,13 @@ export default function Reports() {
     },
     { key: 'total_findings', header: 'Total Temuan', sortable: true },
     {
-      key: 'summary',
-      header: 'Ringkasan',
+      key: 'risk_level',
+      header: 'Risk Level',
       sortable: false,
-      render: (row) => truncate(row.summary),
+      render: (row) => {
+        const s = typeof row.summary === 'object' ? row.summary : (() => { try { return JSON.parse(row.summary || '{}') } catch { return {} } })()
+        return s?.risk_level ? <Badge variant={severityVariant(s.risk_level)}>{(s.risk_level || '').toUpperCase()}</Badge> : '-'
+      },
     },
     {
       key: 'generated_at',
@@ -91,7 +105,7 @@ export default function Reports() {
     <Button
       size="sm"
       variant="ghost"
-      onClick={() => navigate(`/assessor/assessments/${row.assessment_id}`)}
+      onClick={() => navigate(`/assessor/reports/${row.assessment_id}`)}
     >
       Lihat
     </Button>

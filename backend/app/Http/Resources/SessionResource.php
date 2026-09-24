@@ -17,6 +17,10 @@ class SessionResource extends JsonResource
             'expires_at' => $this->expires_at?->toISOString(),
             'ended_at' => $this->ended_at?->toISOString(),
             'consent_given_at' => $this->consent_given_at?->toISOString(),
+            'agent_status' => $this->agent_status,
+            'device_id' => $this->device_id,
+            'connected_at' => $this->connected_at?->toISOString(),
+            'last_seen_at' => $this->last_seen_at?->toISOString(),
             'assessment_id' => $this->assessment_id,
             'assessment' => $this->whenLoaded('assessment', function () {
                 return [

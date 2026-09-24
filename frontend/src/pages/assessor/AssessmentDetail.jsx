@@ -8,6 +8,9 @@ import Card from '../../components/Card'
 import StatusBadge from '../../components/StatusBadge'
 import Tabs from '../../components/Tabs'
 import FindingCard from '../../components/FindingCard'
+import DeviceStatus from '../../components/DeviceStatus'
+import LiveScreen from '../../components/LiveScreen'
+import { useDeviceStatus } from '../../hooks/useDeviceStatus'
 import RiskScoreCard from '../../components/RiskScoreCard'
 import LoadingState from '../../components/LoadingState'
 import EmptyState from '../../components/EmptyState'
@@ -25,6 +28,7 @@ export default function AssessmentDetail() {
   const [report, setReport] = useState(null)
   const [session, setSession] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const { status: deviceStatus, lastSeen } = useDeviceStatus(session)
 
   const fetchDetail = async (silent = false) => {
     if (!silent) {
@@ -37,7 +41,7 @@ export default function AssessmentDetail() {
         setAssessment((prev) => (JSON.stringify(prev) === JSON.stringify(data.data) ? prev : data.data))
       } else {
         setAssessment(data.data)
-        if (['pending_consent', 'consented'].includes(data.data?.status)) fetchSession()
+        if (['pending_consent', 'consented', 'active', 'processing'].includes(data.data?.status)) fetchSession()
       }
     } catch (err) {
       if (!silent) {
@@ -84,6 +88,7 @@ export default function AssessmentDetail() {
   useEffect(() => { fetchDetail() }, [id])
   useEffect(() => {
     if (activeTab === 'findings') fetchFindings()
+    if (activeTab === 'live') { fetchFindings(); if (!session) fetchSession() }
     if (activeTab === 'risk') fetchRiskScore()
     if (activeTab === 'report') fetchReport()
     if (activeTab === 'session' && !session) fetchSession()
@@ -99,6 +104,14 @@ export default function AssessmentDetail() {
     }, 5000)
     return () => clearInterval(t)
   }, [assessment?.status, loading])
+
+  // Polling device status saat assessment active
+  useEffect(() => {
+    if (!assessment) return
+    if (!['active', 'processing'].includes(assessment.status)) return
+    const t = setInterval(() => fetchSession(true), 3000)
+    return () => clearInterval(t)
+  }, [assessment?.status])
 
   const handleAction = async (action) => {
     setActionLoading(true)
@@ -125,6 +138,7 @@ export default function AssessmentDetail() {
 
   const tabs = [
     { id: 'overview', label: 'Ikhtisar' },
+    { id: 'live', label: 'Live' },
     { id: 'findings', label: 'Temuan' },
     { id: 'session', label: 'Sesi' },
     { id: 'risk', label: 'Skor Risiko' },
@@ -149,6 +163,7 @@ export default function AssessmentDetail() {
         </div>
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
           <StatusBadge status={status} />
+          <DeviceStatus status={deviceStatus} lastSeen={lastSeen} />
           {canStart && (
             <Button onClick={() => handleAction('start')} loading={actionLoading}>
               Mulai
@@ -218,6 +233,30 @@ export default function AssessmentDetail() {
             </div>
           )}
 
+          {activeTab === 'live' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <DeviceStatus status={deviceStatus} lastSeen={lastSeen} />
+                <span className="text-xs text-text-secondary">
+                  Capture: {deviceStatus === 'connected' ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <LiveScreen streamUrl={deviceStatus === 'connected' ? 'http://127.0.0.1:8090/stream.mjpeg' : null} />
+                <div>
+                  <h3 className="font-semibold text-text-primary mb-3">Visual Findings</h3>
+                  {findings.filter(f => f.type === 'visual').length === 0 ? (
+                    <p className="text-sm text-text-secondary">No visual findings yet</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[32rem] overflow-y-auto">
+                      {findings.filter(f => f.type === 'visual').map(f => <FindingCard key={f.id} finding={f} />)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'findings' && (
             findings.length === 0 ? <EmptyState message="Tidak ada temuan" /> : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -279,9 +318,14 @@ export default function AssessmentDetail() {
                   <div><span className="text-text-secondary">Status:</span> <StatusBadge status={status} /></div>
                   <div><span className="text-text-secondary">Tingkat Risiko:</span> <span className="font-medium text-text-primary">{riskScore?.level || '-'}</span></div>
                 </div>
-                <Button variant="secondary" size="sm" onClick={() => window.open(`http://127.0.0.1:8000/api/assessor/assessments/${id}/report/json`, '_blank')}>
-                  Lihat JSON
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => navigate(`/assessor/reports/${id}`)}>
+                    Lihat Detail Lengkap
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => handleAction('report')} loading={actionLoading}>
+                    Generate Ulang
+                  </Button>
+                </div>
               </div>
             ) : (
               <EmptyState message="Belum ada laporan" action={<Button onClick={() => handleAction('report')}>Buat Laporan</Button>} />
