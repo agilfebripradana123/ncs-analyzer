@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Assessor;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\RiskScoreResource;
 use App\Models\Assessment;
+use App\Services\RiskScoreService;
 
 class RiskScoreController extends Controller
 {
@@ -28,9 +29,12 @@ class RiskScoreController extends Controller
     {
         $this->authorize('update', $assessment);
 
+        $riskScore = app(RiskScoreService::class)->calculate($assessment);
+
         return response()->json([
             'success' => true,
-            'message' => 'Risk score calculation queued',
-        ], 202);
+            'message' => 'Risk score calculated',
+            'data' => new RiskScoreResource($riskScore),
+        ]);
     }
 }

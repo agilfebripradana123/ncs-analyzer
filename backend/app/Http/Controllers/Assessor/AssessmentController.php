@@ -7,6 +7,7 @@ use App\Http\Requests\StoreAssessmentRequest;
 use App\Http\Requests\UpdateAssessmentRequest;
 use App\Http\Resources\AssessmentResource;
 use App\Models\Assessment;
+use App\Services\RiskScoreService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -105,10 +106,12 @@ class AssessmentController extends Controller
 
         $assessment->update(['status' => 'completed', 'completed_at' => now()]);
 
+        app(RiskScoreService::class)->calculate($assessment);
+
         return response()->json([
             'success' => true,
             'message' => 'Assessment completed',
-            'data' => new AssessmentResource($assessment),
+            'data' => new AssessmentResource($assessment->load('riskScore')),
         ]);
     }
 

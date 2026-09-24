@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Assessor;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessFrameDetections;
 use App\Models\Assessment;
 use App\Models\AssessmentSession;
 use App\Models\FrameEvidence;
@@ -136,6 +137,8 @@ $validated = $request->validate([
             ],
             'captured_at' => $capturedAt,
         ]);
+
+        ProcessFrameDetections::dispatchSync($assessment, $validated['detections'], $evidence->id);
 
         return response()->json([
             'success' => true,

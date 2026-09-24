@@ -17,10 +17,22 @@ class DetectionRuleSeeder extends Seeder
                 'rule_config' => ['domains' => ['example-blocked.com']],
             ],
             [
-                'name' => 'Unauthorized App',
+                'name' => 'Remote Access App',
                 'type' => 'visual',
                 'severity' => 'critical',
-                'rule_config' => ['keywords' => ['TeamViewer', 'AnyDesk']],
+                'rule_config' => ['keywords' => ['teamvie', 'anydes', 'remote']],
+            ],
+            [
+                'name' => 'Gojek Ride App',
+                'type' => 'visual',
+                'severity' => 'low',
+                'rule_config' => ['keywords' => ['gojek']],
+            ],
+            [
+                'name' => 'GPS Location App',
+                'type' => 'visual',
+                'severity' => 'medium',
+                'rule_config' => ['keywords' => ['gps', 'fake']],
             ],
             [
                 'name' => 'Suspicious Keyword',

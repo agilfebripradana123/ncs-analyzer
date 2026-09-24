@@ -8,12 +8,14 @@ class ReportResource extends JsonResource
 {
     public function toArray($request): array
     {
+        $summaryData = is_string($this->summary) ? json_decode($this->summary, true) : $this->summary;
+
         return [
             'id' => $this->id,
-            'summary' => $this->summary,
+            'assessment_id' => $this->assessment_id,
+            'summary' => $summaryData,
             'total_findings' => $this->total_findings,
             'generated_at' => $this->generated_at?->toISOString(),
-            'assessment_id' => $this->assessment_id,
             'assessment' => $this->whenLoaded('assessment', function () {
                 return [
                     'id' => $this->assessment->id,
