@@ -18,6 +18,7 @@ import AssessorReports from './pages/assessor/Reports'
 import ReportDetail from './pages/assessor/ReportDetail'
 import AssessorDashboard from './pages/assessor/Dashboard'
 import Login from './pages/auth/Login'
+import ConsentUpload from './pages/consent/ConsentUpload'
 import ConsentPage from './pages/consent/ConsentPage'
 import Card from './components/Card'
 
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/consent/success" element={<ConsentResult type="success" />} />
           <Route path="/consent/declined" element={<ConsentResult type="declined" />} />
+          <Route path="/consent/:token/upload" element={<ConsentUpload />} />
           <Route path="/consent/:token" element={<ConsentPage />} />
           <Route path="/admin" element={<ProtectedRoute role="admin"><AdminLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="dashboard" replace />} />

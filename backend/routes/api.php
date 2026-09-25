@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/consent/{token}', [\App\Http\Controllers\ConsentController::class, 'show']);
 Route::post('/consent/{token}/approve', [\App\Http\Controllers\ConsentController::class, 'approve']);
 Route::post('/consent/{token}/decline', [\App\Http\Controllers\ConsentController::class, 'decline']);
+Route::post('/consent/{token}/upload', [\App\Http\Controllers\ConsentController::class, 'upload']);
 
 Route::post('/login', [AuthController::class, 'login']);
 

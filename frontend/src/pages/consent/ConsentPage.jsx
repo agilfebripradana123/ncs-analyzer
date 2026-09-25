@@ -36,7 +36,7 @@ export default function ConsentPage() {
     try {
       await api.post(`/consent/${token}/approve`)
       toast.success('Persetujuan diterima')
-      navigate('/consent/success')
+      navigate(`/consent/${token}/upload`)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Gagal menerima persetujuan')
     } finally {
