@@ -13,12 +13,12 @@ class SessionController extends Controller
 {
     public function index()
     {
-        $query = AssessmentSession::with(['assessment.employee']);
+        $query = AssessmentSession::with(['assessment']);
 
         if ($search = request('search')) {
-            $query->whereHas('assessment.employee', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('employee_code', 'like', "%{$search}%");
+            $query->whereHas('assessment', function ($q) use ($search) {
+                $q->where('employee_name', 'like', "%{$search}%")
+                  ->orWhere('employee_department', 'like', "%{$search}%");
             });
         }
 

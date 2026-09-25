@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\DetectionRuleController;
-use App\Http\Controllers\Admin\EmployeeController;
+
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Assessor\ActivityController;
 use App\Http\Controllers\Assessor\AgentController;
@@ -27,7 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware(['role:admin', 'audit'])->prefix('admin')->group(function () {
         Route::apiResource('users', UserController::class);
-        Route::apiResource('employees', EmployeeController::class);
+
         Route::apiResource('rules', DetectionRuleController::class);
         Route::get('audit-logs', [AuditLogController::class, 'index']);
         Route::get('dashboard/stats', [\App\Http\Controllers\Admin\DashboardController::class, 'stats']);
@@ -36,7 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware(['role:assessor', 'audit'])->prefix('assessor')->group(function () {
         Route::get('findings', [\App\Http\Controllers\Assessor\FindingController::class, 'all']);
         Route::get('sessions', [\App\Http\Controllers\Assessor\SessionController::class, 'index']);
-        Route::get('employees', [\App\Http\Controllers\Assessor\EmployeeController::class, 'index']);
+
         Route::apiResource('assessments', AssessmentController::class);
         Route::post('assessments/{assessment}/start', [AssessmentController::class, 'start']);
         Route::post('assessments/{assessment}/complete', [AssessmentController::class, 'complete']);

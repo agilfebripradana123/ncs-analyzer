@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Assessment;
 use App\Models\AssessmentSession;
-use App\Models\Employee;
+
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -20,10 +20,10 @@ class AgentE2ETest extends TestCase
     {
         // 1. Setup: assessor + employee + assessment + session
         $assessor = User::factory()->create(['role' => 'assessor']);
-        $employee = Employee::factory()->create();
         $assessment = Assessment::factory()->pendingConsent()->create([
-            'employee_id' => $employee->id,
             'assessor_id' => $assessor->id,
+            'employee_name' => 'Test Employee',
+            'employee_department' => 'IT',
         ]);
         $session = AssessmentSession::factory()->pending()->create([
             'assessment_id' => $assessment->id,

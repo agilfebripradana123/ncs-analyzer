@@ -16,23 +16,23 @@ class FindingController extends Controller
         $search = request('search');
 
         $visual = VisualFinding::query()
-            ->with(['rule', 'assessment.employee'])
+            ->with(['rule', 'assessment'])
             ->whereHas('assessment', fn ($q) => $q->where('assessor_id', $userId));
 
         $log = LogFinding::query()
-            ->with(['rule', 'assessment.employee'])
+            ->with(['rule', 'assessment'])
             ->whereHas('assessment', fn ($q) => $q->where('assessor_id', $userId));
 
         if ($search) {
             $visual->where(function ($q) use ($search) {
                 $q->where('type', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('assessment.employee', fn ($e) => $e->where('name', 'like', "%{$search}%"));
+                  ->orWhereHas('assessment', fn ($a) => $a->where('employee_name', 'like', "%{$search}%"));
             });
             $log->where(function ($q) use ($search) {
                 $q->where('type', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('assessment.employee', fn ($e) => $e->where('name', 'like', "%{$search}%"));
+                  ->orWhereHas('assessment', fn ($a) => $a->where('employee_name', 'like', "%{$search}%"));
             });
         }
 

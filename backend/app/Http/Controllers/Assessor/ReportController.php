@@ -17,7 +17,7 @@ class ReportController extends Controller
         $userId = auth()->id();
         $search = $request->input('search');
 
-        $query = Report::with(['assessment.employee'])
+        $query = Report::with('assessment')
             ->whereNotNull('generated_at')
             ->whereHas('assessment', fn ($q) => $q->where('assessor_id', $userId));
 
@@ -26,7 +26,7 @@ class ReportController extends Controller
                 $q->where('summary', 'like', "%{$search}%")
                   ->orWhereHas('assessment', function ($a) use ($search) {
                       $a->where('assessment_code', 'like', "%{$search}%")
-                        ->orWhereHas('employee', fn ($e) => $e->where('name', 'like', "%{$search}%"));
+                        ->orWhere('employee_name', 'like', "%{$search}%");
                   });
             });
         }
@@ -47,7 +47,7 @@ class ReportController extends Controller
     {
         $this->authorize('update', $assessment);
 
-        $assessment->load(['riskScore', 'visualFindings.rule', 'logFindings.rule', 'employee']);
+        $assessment->load(['riskScore', 'visualFindings.rule', 'logFindings.rule']);
 
         $riskScore = $assessment->riskScore;
         $visual = $assessment->visualFindings;
@@ -76,7 +76,7 @@ class ReportController extends Controller
             ]
         );
 
-        $report->load('assessment.employee');
+        $report->load('assessment');
 
         return response()->json([
             'success' => true,
@@ -95,8 +95,8 @@ class ReportController extends Controller
             return response()->json(['success' => false, 'message' => 'Report not generated'], 404);
         }
 
-        $assessment->load(['riskScore', 'visualFindings.rule', 'logFindings.rule', 'employee']);
-        $report->load('assessment.employee');
+        $assessment->load(['riskScore', 'visualFindings.rule', 'logFindings.rule']);
+        $report->load('assessment');
 
         return response()->json([
             'success' => true,

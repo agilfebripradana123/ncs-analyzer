@@ -14,7 +14,9 @@ class StoreAssessmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id' => 'required|exists:employees,id',
+            'employee_name' => 'required|string|max:150',
+            'employee_department' => 'nullable|string|max:150',
+            'description' => 'nullable|string|max:5000',
         ];
     }
 }

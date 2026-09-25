@@ -19,7 +19,9 @@ class Assessment extends Model
         });
     }
     protected $fillable = [
-        'employee_id',
+        'employee_name',
+        'employee_department',
+        'description',
         'assessor_id',
         'assessment_code',
         'status',
@@ -36,10 +38,7 @@ class Assessment extends Model
         ];
     }
 
-    public function employee()
-    {
-        return $this->belongsTo(Employee::class);
-    }
+
 
     public function assessor()
     {

@@ -1,6 +1,5 @@
 import {
   LayoutDashboard,
-  Users,
   UserCog,
   ShieldCheck,
   ScrollText,
@@ -19,7 +18,6 @@ const menuItems = [
   {
     label: 'SISTEM',
     items: [
-      { path: '/admin/employees', label: 'Karyawan', icon: <Users size={18} /> },
       { path: '/admin/users', label: 'Pengguna', icon: <UserCog size={18} /> },
       { path: '/admin/rules', label: 'Aturan Deteksi', icon: <ShieldCheck size={18} /> },
       { path: '/admin/audit-logs', label: 'Log Audit', icon: <ScrollText size={18} /> },

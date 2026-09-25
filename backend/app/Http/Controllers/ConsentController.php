@@ -9,7 +9,7 @@ class ConsentController extends Controller
 {
     public function show($token)
     {
-        $session = AssessmentSession::with(['assessment.employee', 'assessment.assessor'])
+        $session = AssessmentSession::with(['assessment.assessor'])
             ->where('consent_token', $token)
             ->first();
 
@@ -27,8 +27,8 @@ class ConsentController extends Controller
                 'session_code' => $token,
                 'assessment_code' => $session->assessment->assessment_code,
                 'employee' => [
-                    'name' => $session->assessment->employee->name,
-                    'department' => $session->assessment->employee->department,
+                    'name' => $session->assessment->employee_name,
+                    'department' => $session->assessment->employee_department,
                 ],
                 'assessor' => [
                     'name' => $session->assessment->assessor->name,

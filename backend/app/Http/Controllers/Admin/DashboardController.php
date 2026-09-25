@@ -4,13 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Assessment;
-use App\Models\Employee;
+
 
 class DashboardController extends Controller
 {
     public function stats()
     {
-        $employeesCount = Employee::count();
         $assessmentsCount = Assessment::count();
         $activeCount = Assessment::where('status', 'active')->count();
 
@@ -35,8 +34,8 @@ class DashboardController extends Controller
             }
         }
 
-        // Recent assessments (latest 5 with employee + risk_score)
-        $recentAssessments = Assessment::with(['employee', 'riskScore'])
+        // Recent assessments (latest 5 with employee_name + risk_score)
+        $recentAssessments = Assessment::with('riskScore')
             ->latest()
             ->limit(5)
             ->get()
@@ -44,7 +43,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $a->id,
                     'assessment_code' => $a->assessment_code,
-                    'employee' => $a->employee ? ['name' => $a->employee->name] : null,
+                    'employee' => $a->employee_name ? ['name' => $a->employee_name] : null,
                     'status' => $a->status,
                     'risk_score' => $a->riskScore ? ['score' => $a->riskScore->score] : null,
                     'created_at' => $a->created_at->toISOString(),
@@ -55,7 +54,6 @@ class DashboardController extends Controller
             'success' => true,
             'data' => [
                 'counts' => [
-                    'employees' => $employeesCount,
                     'assessments' => $assessmentsCount,
                     'active' => $activeCount,
                 ],

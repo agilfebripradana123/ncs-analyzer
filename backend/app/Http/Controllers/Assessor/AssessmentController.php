@@ -16,12 +16,12 @@ class AssessmentController extends Controller
     public function index(Request $request)
     {
         $query = Assessment::where('assessor_id', $request->user()->id)
-            ->with(['employee', 'consent', 'session', 'riskScore', 'assessor'])
+            ->with(['consent', 'session', 'riskScore', 'assessor'])
             ->withCount(['visualFindings', 'logFindings']);
 
         $sortBy = $request->input('sort', 'created_at');
         $sortOrder = $request->input('order', 'desc');
-        $allowedSort = ['id', 'title', 'status', 'assessor_id', 'employee_id', 'created_at'];
+        $allowedSort = ['id', 'title', 'status', 'assessor_id', 'employee_name', 'created_at'];
         if (in_array($sortBy, $allowedSort)) {
             $query->orderBy($sortBy, $sortOrder);
         }
@@ -31,11 +31,18 @@ class AssessmentController extends Controller
 
     public function store(StoreAssessmentRequest $request)
     {
-        $assessment = Assessment::create([
-            'employee_id' => $request->validated('employee_id'),
+        $data = [
             'assessor_id' => $request->user()->id,
             'status' => 'pending_consent',
-        ]);
+            'employee_name' => $request->validated('employee_name'),
+            'employee_department' => $request->validated('employee_department'),
+        ];
+
+        if ($request->filled('description')) {
+            $data['description'] = $request->validated('description');
+        }
+
+        $assessment = Assessment::create($data);
 
         $session = $assessment->session()->create([
             'session_token' => Str::random(64),
@@ -45,14 +52,14 @@ class AssessmentController extends Controller
             'expires_at' => now()->addMinutes(30),
         ]);
 
-        $assessment->load('employee');
+        $assessment->load('session');
 
         return response()->json([
             'message' => 'Penilaian berhasil dibuat',
             'data' => [
                 'id' => $assessment->id,
                 'assessment_code' => $assessment->assessment_code,
-                'employee' => $assessment->employee->name,
+                'employee' => $assessment->employee_name,
                 'status' => $assessment->status,
                 'session_code' => $session->consent_token,
                 'consent_url' => url('/consent/' . $session->consent_token),
@@ -66,7 +73,7 @@ class AssessmentController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new AssessmentResource($assessment->load(['employee', 'consent', 'session', 'riskScore', 'report', 'assessor'])),
+            'data' => new AssessmentResource($assessment->load(['consent', 'session', 'riskScore', 'report', 'assessor'])),
         ]);
     }
 

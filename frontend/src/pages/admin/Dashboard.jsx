@@ -114,11 +114,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
-        <Card>
-          <p className="text-sm text-text-secondary mb-1">Karyawan</p>
-          <p className="text-3xl font-bold text-text-primary">{data?.counts?.employees ?? 0}</p>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
         <Card>
           <p className="text-sm text-text-secondary mb-1">Penilaian</p>
           <p className="text-3xl font-bold text-text-primary">{data?.counts?.assessments ?? 0}</p>

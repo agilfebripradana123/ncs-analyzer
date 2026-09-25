@@ -8,7 +8,7 @@ use App\Models\AuditLog;
 use App\Models\AssessmentSession;
 use App\Models\Consent;
 use App\Models\DetectionRule;
-use App\Models\Employee;
+
 use App\Models\LogFinding;
 use App\Models\RiskScore;
 use App\Models\Report;
@@ -24,24 +24,19 @@ class DummyDataSeeder extends Seeder
         $assessor = User::where('email', 'assessor@ncs-analyzer.test')->first();
 
         $employees = [
-            ['employee_code' => 'EMP-001', 'name' => 'Budi Santoso', 'department' => 'IT Department', 'position' => 'Network Engineer'],
-            ['employee_code' => 'EMP-002', 'name' => 'Siti Rahayu', 'department' => 'Finance', 'position' => 'Accountant'],
-            ['employee_code' => 'EMP-003', 'name' => 'Ahmad Fauzi', 'department' => 'HRD', 'position' => 'HR Generalist'],
-            ['employee_code' => 'EMP-004', 'name' => 'Dewi Lestari', 'department' => 'Marketing', 'position' => 'Digital Marketing'],
-            ['employee_code' => 'EMP-005', 'name' => 'Rudi Hermawan', 'department' => 'IT Department', 'position' => 'System Admin'],
+            'EMP-001' => ['name' => 'Budi Santoso', 'department' => 'IT Department'],
+            'EMP-002' => ['name' => 'Siti Rahayu', 'department' => 'Finance'],
+            'EMP-003' => ['name' => 'Ahmad Fauzi', 'department' => 'HRD'],
+            'EMP-004' => ['name' => 'Dewi Lestari', 'department' => 'Marketing'],
+            'EMP-005' => ['name' => 'Rudi Hermawan', 'department' => 'IT Department'],
         ];
-
-        foreach ($employees as $e) {
-            Employee::updateOrCreate(['employee_code' => $e['employee_code']], $e);
-        }
-
-        $emp = Employee::pluck('id', 'employee_code')->toArray();
 
         // --- Assessment 1: completed ---
         $a1 = Assessment::updateOrCreate(
             ['title' => 'Audit Keamanan Bulanan - Budi Santoso'],
             [
-                'employee_id' => $emp['EMP-001'],
+                'employee_name' => $employees['EMP-001']['name'],
+                'employee_department' => $employees['EMP-001']['department'],
                 'assessor_id' => $assessor->id,
                 'status' => 'completed',
                 'started_at' => now()->subHours(2),
@@ -115,7 +110,8 @@ class DummyDataSeeder extends Seeder
         $a2 = Assessment::updateOrCreate(
             ['title' => 'Audit Harian - Siti Rahayu'],
             [
-                'employee_id' => $emp['EMP-002'],
+                'employee_name' => $employees['EMP-002']['name'],
+                'employee_department' => $employees['EMP-002']['department'],
                 'assessor_id' => $assessor->id,
                 'status' => 'active',
                 'started_at' => now()->subMinutes(30),
@@ -166,7 +162,8 @@ class DummyDataSeeder extends Seeder
         Assessment::updateOrCreate(
             ['title' => 'Pra-Audit - Ahmad Fauzi'],
             [
-                'employee_id' => $emp['EMP-003'],
+                'employee_name' => $employees['EMP-003']['name'],
+                'employee_department' => $employees['EMP-003']['department'],
                 'assessor_id' => $assessor->id,
                 'status' => 'consented',
             ]

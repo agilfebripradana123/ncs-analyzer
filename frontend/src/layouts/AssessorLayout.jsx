@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   ClipboardCheck,
-  Users,
   Monitor,
   SearchCheck,
   FileText,
@@ -21,7 +20,6 @@ const menuItems = [
     label: 'PENILAIAN',
     items: [
       { path: '/assessor/assessments', label: 'Penilaian', icon: <ClipboardCheck size={18} /> },
-      { path: '/assessor/employees', label: 'Karyawan', icon: <Users size={18} /> },
       { path: '/assessor/sessions', label: 'Sesi', icon: <Monitor size={18} /> },
       { path: '/assessor/findings', label: 'Temuan', icon: <SearchCheck size={18} /> },
       { path: '/assessor/reports', label: 'Laporan', icon: <FileText size={18} /> },
