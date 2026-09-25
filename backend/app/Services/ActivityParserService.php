@@ -60,6 +60,7 @@ class ActivityParserService
                             'description' => 'Detected: Judi Online (similarity: '.round($result['score'], 3).')',
                             'evidence' => [
                                 'activity_log_id' => $log->id, 'data' => $entry,
+                                'analyzed_text' => $text,
                                 'matcher' => 'similarity', 'confidence' => $result['score'],
                                 'matched_corpus' => mb_substr($result['matched'], 0, 200),
                             ],

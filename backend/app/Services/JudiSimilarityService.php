@@ -11,6 +11,11 @@ use App\Models\JudiCorpus;
 class JudiSimilarityService
 {
     private const MIN_TERM_LENGTH = 2;
+    // Single-token OCR regions ("YouTube", "Super", "BS") share one common
+    // term with a corpus row and easily clear 0.35. Require at least 2
+    // distinct terms so a hit needs real phrase overlap, not one lucky word.
+    private const MIN_QUERY_TERMS = 2;
+    private const MIN_OVERLAP_TERMS = 2;
 
     private static ?array $cache = null;
 
@@ -30,13 +35,17 @@ class JudiSimilarityService
         }
 
         $query = $this->queryVector($text, $corpus['idf']);
-        if ($query === []) {
-            return null;
+        if (count($query) < self::MIN_QUERY_TERMS) {
+            return null; // single-fragment OCR regions are noise, not evidence
         }
 
         $best = null;
         $bestScore = 0.0;
         foreach ($corpus['vectors'] as $i => $vector) {
+            $overlap = count(array_intersect_key($query, $vector));
+            if ($overlap < self::MIN_OVERLAP_TERMS) {
+                continue;
+            }
             $score = self::cosine($query, $vector);
             if ($score > $bestScore) {
                 $bestScore = $score;
