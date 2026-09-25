@@ -11,7 +11,6 @@ class DetectionRuleResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'type' => $this->type,
             'rule_config' => $this->rule_config,
             'severity' => $this->severity,
             'status' => $this->status,

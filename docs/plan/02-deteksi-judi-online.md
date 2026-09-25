@@ -1,7 +1,7 @@
 # Plan 02 — Deteksi Judi Online (Keyword + TF-IDF Similarity)
 
 Tanggal: 2026-09-25
-Status: IN-PROGRESS
+Status: DONE
 
 ## Tujuan
 Deteksi aktivitas judi online dari OCR text layar HP. Hybrid: keyword match cepat → TF-IDF cosine similarity fallback pakai dataset `judi.csv` (899 baris, label 1 = judi).

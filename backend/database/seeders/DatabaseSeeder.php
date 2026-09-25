@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminSeeder::class,
             DetectionRuleSeeder::class,
+            JudiDatasetSeeder::class,
             DummyDataSeeder::class,
         ]);
     }

@@ -5,12 +5,13 @@ namespace App\Services;
 use App\Models\ActivityLog;
 use App\Models\DetectionRule;
 use App\Models\LogFinding;
+use App\Services\JudiSimilarityService;
 
 class ActivityParserService
 {
     public function parse(int $assessmentId, array $entries): int
     {
-        $rules = DetectionRule::where('type', 'log')->where('status', 'active')->get();
+        $rules = DetectionRule::where('status', 'active')->get();
         $findingCount = 0;
 
         foreach ($entries as $entry) {
@@ -21,6 +22,7 @@ class ActivityParserService
                 'occurred_at' => $entry['timestamp'] ?? now(),
             ]);
 
+            $matched = false;
             foreach ($rules as $rule) {
                 if ($this->matches($rule, $entry)) {
                     LogFinding::create([
@@ -28,11 +30,40 @@ class ActivityParserService
                         'rule_id' => $rule->id,
                         'type' => $rule->name,
                         'description' => "Matched rule: {$rule->name}",
-                        'evidence' => ['activity_log_id' => $log->id, 'data' => $entry],
+                        'evidence' => ['activity_log_id' => $log->id, 'data' => $entry, 'matcher' => 'keyword'],
                         'severity' => $rule->severity,
                         'detected_at' => now(),
                     ]);
                     $findingCount++;
+                    $matched = true;
+                }
+            }
+
+            // ponytail: similarity only on web/url entries. Upgrade to all entry types if needed.
+            if (!$matched) {
+                $text = $this->extractWebText($entry);
+                if ($text !== null) {
+                    $result = JudiSimilarityService::fromConfig()->match($text);
+                    if ($result !== null) {
+                        $rule = DetectionRule::firstOrCreate(
+                            ['name' => 'Judi Online (Log)'],
+                            ['type' => 'log', 'severity' => 'high', 'status' => 'active', 'rule_config' => ['matcher' => 'similarity']]
+                        );
+                        LogFinding::create([
+                            'assessment_id' => $assessmentId,
+                            'rule_id' => $rule->id,
+                            'type' => 'Judi Online (Log)',
+                            'description' => 'Detected: Judi Online (similarity: '.round($result['score'], 3).')',
+                            'evidence' => [
+                                'activity_log_id' => $log->id, 'data' => $entry,
+                                'matcher' => 'similarity', 'confidence' => $result['score'],
+                                'matched_corpus' => mb_substr($result['matched'], 0, 200),
+                            ],
+                            'severity' => $rule->severity,
+                            'detected_at' => now(),
+                        ]);
+                        $findingCount++;
+                    }
                 }
             }
         }
@@ -62,5 +93,14 @@ class ActivityParserService
         }
 
         return false;
+    }
+
+    /** Extract browsable text from log entry for similarity. null if nothing usable. */
+    private function extractWebText(array $entry): ?string
+    {
+        $url = $entry['url'] ?? ($entry['activity_data']['url'] ?? null);
+        $title = $entry['title'] ?? ($entry['activity_data']['title'] ?? null);
+        $text = trim(($title ?? '').' '.($url ?? ''));
+        return $text === '' ? null : $text;
     }
 }

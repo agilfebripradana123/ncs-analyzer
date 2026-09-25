@@ -16,16 +16,12 @@ class DetectionRuleController extends Controller
         $query = DetectionRule::query();
 
         if ($search = $request->input('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('type', 'like', "%{$search}%")
-                  ->orWhere('pattern', 'like', "%{$search}%");
-            });
+            $query->where('name', 'like', "%{$search}%");
         }
 
         $sortBy = $request->input('sort', 'created_at');
         $sortOrder = $request->input('order', 'desc');
-        $allowedSort = ['name', 'type', 'severity', 'risk_weight', 'status', 'created_at'];
+        $allowedSort = ['name', 'severity', 'status', 'created_at'];
         if (in_array($sortBy, $allowedSort)) {
             $query->orderBy($sortBy, $sortOrder);
         }

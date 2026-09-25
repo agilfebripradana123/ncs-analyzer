@@ -11,22 +11,10 @@ class DetectionRuleSeeder extends Seeder
     {
         $rules = [
             [
-                'name' => 'Blocked Domain',
-                'type' => 'log',
-                'severity' => 'high',
-                'rule_config' => ['domains' => ['example-blocked.com']],
-            ],
-            [
                 'name' => 'Remote Access App',
                 'type' => 'visual',
                 'severity' => 'critical',
                 'rule_config' => ['keywords' => ['teamvie', 'anydes', 'remote']],
-            ],
-            [
-                'name' => 'Gojek Ride App',
-                'type' => 'visual',
-                'severity' => 'low',
-                'rule_config' => ['keywords' => ['gojek']],
             ],
             [
                 'name' => 'GPS Location App',
@@ -40,10 +28,28 @@ class DetectionRuleSeeder extends Seeder
                 'severity' => 'medium',
                 'rule_config' => ['keywords' => ['password', 'credential']],
             ],
+            [
+                'name' => 'Judi Online',
+                'type' => 'visual',
+                'severity' => 'high',
+                'rule_config' => ['keywords' => ['slot', 'gacor', 'maxwin', 'scatter', 'togel', 'toto', 'deposit', 'wd', 'rtp', 'chip', 'saldo', 'link alternatif', 'pola gacor', 'jam gacor', 'pragmatic', 'olympus', 'bonanza', 'zeus', 'joker', 'habanero', 'spaceman', 'starlight princess', 'new member', 'bonus', 'jackpot', 'pg soft', 'live casino', 'baccarat', 'blackjack', 'sweet bonanza', 'gates of olympus', 'starlight', 'wild west', 'mahjong ways', 'fortune', 'sugar rush', 'x500', 'x1000', 'free spin', 'bocoran', 'paus', 'sultan', 'cuan', 'mantap', 'daftar', 'login', 'withdraw', 'cashback', 'turnover', 'minimal bet', 'modal kecil', 'untung besar', 'anti rungkad', 'main santuy', 'receh']],
+            ],
+            [
+                'name' => 'Judi Online (Similarity)',
+                'type' => 'visual',
+                'severity' => 'high',
+                'rule_config' => ['matcher' => 'similarity', 'threshold' => 0.35, 'source' => 'database/data/judi.csv'],
+            ],
+            [
+                'name' => 'Judi Online (Log)',
+                'type' => 'log',
+                'severity' => 'high',
+                'rule_config' => ['matcher' => 'similarity', 'threshold' => 0.35, 'source' => 'database/data/judi.csv'],
+            ],
         ];
 
         foreach ($rules as $rule) {
-            DetectionRule::firstOrCreate(
+            DetectionRule::updateOrCreate(
                 ['name' => $rule['name']],
                 array_merge($rule, ['status' => 'active'])
             );

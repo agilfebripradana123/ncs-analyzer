@@ -15,7 +15,6 @@ class UpdateDetectionRuleRequest extends FormRequest
     {
         return [
             'name' => 'sometimes|string',
-            'type' => 'sometimes|in:visual,log',
             'rule_config' => 'sometimes|array',
             'severity' => 'sometimes|in:low,medium,high,critical',
             'status' => 'sometimes|in:active,inactive',

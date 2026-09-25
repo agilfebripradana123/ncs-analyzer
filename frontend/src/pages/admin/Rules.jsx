@@ -145,7 +145,6 @@ export default function Rules() {
   const columns = [
     { key: 'name', header: 'Nama Aturan' },
     { key: 'type', header: 'Tipe' },
-    { key: 'pattern', header: 'Pola' },
     {
       key: 'severity',
       header: 'Tingkat Keparahan',
@@ -166,7 +165,6 @@ export default function Rules() {
         </span>
       ),
     },
-    { key: 'risk_weight', header: 'Bobot Risiko' },
     {
       key: 'status',
       header: 'Status',

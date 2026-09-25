@@ -15,7 +15,6 @@ class StoreDetectionRuleRequest extends FormRequest
     {
         return [
             'name' => 'required|string',
-            'type' => 'required|in:visual,log',
             'rule_config' => 'required|array',
             'severity' => 'required|in:low,medium,high,critical',
         ];

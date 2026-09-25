@@ -57,8 +57,8 @@ class DummyDataSeeder extends Seeder
             'ended_at' => now()->subMinutes(30),
         ]);
 
-        $ruleUnauth = DetectionRule::where('name', 'Unauthorized App')->first();
-        $ruleBlocked = DetectionRule::where('name', 'Blocked Domain')->first();
+        $ruleRemote = DetectionRule::where('name', 'Remote Access App')->first();
+        $ruleSuspicious = DetectionRule::where('name', 'Suspicious Keyword')->first();
 
         foreach (['web', 'application', 'file', 'web', 'application'] as $i => $type) {
             ActivityLog::create([
@@ -70,25 +70,19 @@ class DummyDataSeeder extends Seeder
         }
 
         VisualFinding::create([
-            'assessment_id' => $a1->id, 'rule_id' => $ruleUnauth->id, 'type' => 'application',
+            'assessment_id' => $a1->id, 'rule_id' => $ruleRemote->id, 'type' => 'application',
             'description' => 'Aplikasi tidak sah terdeteksi: TeamViewer',
             'evidence' => ['app' => 'TeamViewer', 'confidence' => 0.95],
             'severity' => 'critical', 'detected_at' => now()->subMinutes(60),
         ]);
         VisualFinding::create([
-            'assessment_id' => $a1->id, 'rule_id' => $ruleUnauth->id, 'type' => 'application',
+            'assessment_id' => $a1->id, 'rule_id' => $ruleRemote->id, 'type' => 'application',
             'description' => 'Aplikasi tidak sah terdeteksi: AnyDesk',
             'evidence' => ['app' => 'AnyDesk', 'confidence' => 0.89],
             'severity' => 'high', 'detected_at' => now()->subMinutes(50),
         ]);
         LogFinding::create([
-            'assessment_id' => $a1->id, 'rule_id' => $ruleBlocked->id, 'type' => 'url',
-            'description' => 'Domain terblokir diakses: example-blocked.com',
-            'evidence' => ['url' => 'https://example-blocked.com/login', 'status' => 200],
-            'severity' => 'high', 'detected_at' => now()->subMinutes(40),
-        ]);
-        LogFinding::create([
-            'assessment_id' => $a1->id, 'rule_id' => $ruleBlocked->id, 'type' => 'keyword',
+            'assessment_id' => $a1->id, 'rule_id' => $ruleSuspicious->id, 'type' => 'keyword',
             'description' => 'Kata kunci mencurigakan ditemukan pada log',
             'evidence' => ['keyword' => 'password', 'context' => 'login attempt'],
             'severity' => 'medium', 'detected_at' => now()->subMinutes(30),
@@ -96,13 +90,13 @@ class DummyDataSeeder extends Seeder
 
         RiskScore::create([
             'assessment_id' => $a1->id, 'score' => 42.50, 'level' => 'medium',
-            'calculation_data' => ['visual' => 2, 'log' => 2, 'critical' => 1, 'high' => 2, 'medium' => 1],
+            'calculation_data' => ['visual' => 2, 'log' => 1, 'critical' => 1, 'high' => 1, 'medium' => 1],
             'calculated_at' => now()->subMinutes(20),
         ]);
         Report::create([
             'assessment_id' => $a1->id,
-            'summary' => 'Hasil audit menunjukkan risiko sedang. Ditemukan 2 aplikasi tidak sah dan 2 pelanggaran domain/kata kunci. Perlu tindakan lanjutan.',
-            'total_findings' => 4,
+            'summary' => 'Hasil audit menunjukkan risiko sedang. Ditemukan 2 aplikasi tidak sah dan 1 pelanggaran kata kunci. Perlu tindakan lanjutan.',
+            'total_findings' => 3,
             'generated_at' => now()->subMinutes(10),
         ]);
 
@@ -142,18 +136,18 @@ class DummyDataSeeder extends Seeder
         VisualFinding::firstOrCreate(
             ['assessment_id' => $a2->id, 'type' => 'application'],
             [
-                'rule_id' => $ruleUnauth->id,
+                'rule_id' => $ruleRemote->id,
                 'description' => 'TimViewer terdeteksi sesi aktif',
                 'evidence' => ['app' => 'TeamViewer', 'confidence' => 0.72],
                 'severity' => 'medium', 'detected_at' => now()->subMinutes(3),
             ]
         );
         LogFinding::firstOrCreate(
-            ['assessment_id' => $a2->id, 'type' => 'url'],
+            ['assessment_id' => $a2->id, 'type' => 'keyword'],
             [
-                'rule_id' => $ruleBlocked->id,
-                'description' => 'Akses domain terblokir sementara',
-                'evidence' => ['url' => 'https://example-blocked.com', 'status' => 403],
+                'rule_id' => $ruleSuspicious->id,
+                'description' => 'Kata kunci credential terdeteksi',
+                'evidence' => ['keyword' => 'credential', 'context' => 'api call'],
                 'severity' => 'low', 'detected_at' => now()->subMinutes(2),
             ]
         );
