@@ -1,7 +1,7 @@
 # Plan 03 — Logika Penilaian Rule Deteksi
 
 Tanggal: 2026-09-25
-Status: DONE (41 tests pass, build OK)
+Status: DONE (47 tests pass, build OK)
 
 ## Tujuan
 Dokumentasi alur penilaian (scoring) dari deteksi → finding → risk score. Menjelaskan perbedaan visual vs log, cara kerja keyword vs similarity, dan bagaimana skor akhir dihitung.
@@ -147,6 +147,10 @@ Detail disimpan di `calculation_data` JSON:
 
 - `firstOrCreate` dipakai untuk rule similarity agar tidak error kalau seeder belum jalan. Seeder pakai `firstOrCreate` supaya config edit admin tidak ditimpa saat seed ulang.
 - Similarity cache statis di `JudiSimilarityService::$cache` — hidup selama proses/job berjalan. Tidak persist antar request.
+- **Anti-noise similarity:** `JudiSimilarityService` require `MIN_QUERY_TERMS=2` dan `MIN_OVERLAP_TERMS=2`. Fragment OCR 1 kata ("YouTube", "Super", "BS") tidak menghasilkan finding.
+- **Dedup temporal:** `ProcessFrameDetections` skip similarity finding kalau `matched_corpus` sama untuk assessment yang sama dalam 60 detik; skip keyword finding kalau `analyzed_text` sama dalam 60 detik.
+- **Confidence fix:** `confidence` disimpan = similarity score, ditampilkan dengan label "Similarity". `ev.detection.confidence` (OCR confidence) TIDAK ditampilkan.
+- **Evidence tambahan:** frame/log finding simpan `analyzed_text` (teks OCR yang dianalisis) + `matched_corpus` (corpus entry pencocokan).
 - Kolom `pattern`, `risk_weight`, dan `type` sudah dihapus dari model/migration/frontend. Rule universal — matcher ditentukan `rule_config` (`keywords` vs `matcher: similarity`).
 - Rule non-judi (Remote Access App, GPS Location App, Suspicious Keyword) sudah dihapus dari seeder + DB. Fokus deteksi: judi online.
 - `destroy` di `DetectionRuleController` soft-delete (set status=inactive), bukan hard delete, karena FK constraint ke findings.
