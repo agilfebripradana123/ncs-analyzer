@@ -8,15 +8,31 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AuditLog
 {
+    /** Paths yang tidak perlu di-audit (agent internal). */
+    private const SKIP_PATHS = ['agent/heartbeat', 'agent/frames', 'agent/register'];
+
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
 
         if ($request->user() && in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'])) {
+            if ($this->isAgentPath($request->path())) {
+                return $response;
+            }
             $this->log($request, $response);
         }
 
         return $response;
+    }
+
+    protected function isAgentPath(string $path): bool
+    {
+        foreach (self::SKIP_PATHS as $skip) {
+            if (str_contains($path, $skip)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     protected function log(Request $request, Response $response): void

@@ -21,6 +21,11 @@ const SEVERITY_OPTIONS = [
   { value: 'critical', label: 'Kritis' },
 ]
 
+const MATCHER_OPTIONS = [
+  { value: 'keyword', label: 'Kata Kunci' },
+  { value: 'similarity', label: 'Kemiripan Teks (TF-IDF)' },
+]
+
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Aktif' },
   { value: 'inactive', label: 'Tidak Aktif' },
@@ -42,6 +47,9 @@ export default function Rules() {
     name: '',
     severity: '',
     status: 'active',
+    matcher: 'keyword',
+    keywords: '',
+    threshold: 0.35,
   })
 
   const fetchRules = async (page = 1, q = '') => {
@@ -81,7 +89,7 @@ export default function Rules() {
 
   const openCreate = () => {
     setEditData(null)
-    setForm({ name: '', severity: '', status: 'active' })
+    setForm({ name: '', severity: '', status: 'active', matcher: 'keyword', keywords: '', threshold: 0.35 })
     setEditModal(true)
   }
 
@@ -91,6 +99,9 @@ export default function Rules() {
       name: rule.name,
       severity: rule.severity,
       status: rule.status,
+      matcher: rule.rule_config?.matcher || 'keyword',
+      keywords: (rule.rule_config?.keywords || []).join(', '),
+      threshold: rule.rule_config?.threshold ?? 0.35,
     })
     setEditModal(true)
   }
@@ -99,11 +110,20 @@ export default function Rules() {
     e.preventDefault()
     setFormLoading(true)
     try {
+      const payload = {
+        name: form.name,
+        severity: form.severity,
+        status: form.status,
+        rule_config: form.matcher === 'keyword'
+          ? { matcher: 'keyword', keywords: form.keywords.split(',').map((k) => k.trim()).filter(Boolean) }
+          : { matcher: 'similarity', threshold: parseFloat(form.threshold) },
+      }
+
       if (editData) {
-        await api.put(`/admin/rules/${editData.id}`, form)
+        await api.put(`/admin/rules/${editData.id}`, payload)
         toast.success('Aturan diperbarui')
       } else {
-        await api.post('/admin/rules', form)
+        await api.post('/admin/rules', payload)
         toast.success('Aturan ditambahkan')
       }
       setEditModal(false)
@@ -137,6 +157,15 @@ export default function Rules() {
 
   const columns = [
     { key: 'name', header: 'Nama Aturan' },
+    {
+      key: 'matcher',
+      header: 'Tipe Pencocokan',
+      render: (row) => (
+        <span className="text-sm text-text-primary">
+          {row.rule_config?.matcher === 'similarity' ? 'Kemiripan Teks' : 'Kata Kunci'}
+        </span>
+      ),
+    },
     {
       key: 'severity',
       header: 'Tingkat Keparahan',
@@ -232,6 +261,40 @@ export default function Rules() {
             onChange={(e) => setForm({ ...form, severity: e.target.value })}
             required
           />
+          <Select
+            label="Tipe Pencocokan"
+            options={MATCHER_OPTIONS}
+            value={form.matcher}
+            onChange={(e) => setForm({ ...form, matcher: e.target.value })}
+            required
+          />
+          {form.matcher === 'keyword' ? (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-text-primary">
+                Kata Kunci (pisahkan koma)
+              </label>
+              <textarea
+                className="px-3 py-2 text-sm border border-border rounded-md bg-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[100px]"
+                value={form.keywords}
+                onChange={(e) => setForm({ ...form, keywords: e.target.value })}
+                placeholder="slot, gacor, maxwin, scatter..."
+                required
+              />
+              <span className="text-xs text-text-secondary">Contoh: slot, gacor, maxwin (dipisah koma)</span>
+            </div>
+          ) : (
+            <Input
+              label="Ambang Similaritas (0–1)"
+              type="number"
+              min={0}
+              max={1}
+              step={0.05}
+              value={form.threshold}
+              onChange={(e) => setForm({ ...form, threshold: e.target.value })}
+              helper="Default 0.35, lebih tinggi = lebih ketat"
+              required
+            />
+          )}
           <Select
             label="Status"
             options={STATUS_OPTIONS}

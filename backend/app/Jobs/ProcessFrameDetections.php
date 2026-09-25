@@ -28,6 +28,13 @@ class ProcessFrameDetections implements ShouldQueue
         $judiRule = null;
         $similarity = null;
 
+        $simRule = $rules->first(fn ($r) => ($r->rule_config['matcher'] ?? 'keyword') === 'similarity');
+        if ($simRule !== null) {
+            $similarity = new JudiSimilarityService((float) ($simRule->rule_config['threshold'] ?? 0.35));
+        } else {
+            $similarity = JudiSimilarityService::fromConfig();
+        }
+
         foreach ($this->detections as $detection) {
             $matched = false;
             foreach ($rules as $rule) {
@@ -49,19 +56,16 @@ class ProcessFrameDetections implements ShouldQueue
                 }
             }
 
-            // ponytail: similarity only runs when keyword misses all rules. Upgrade to per-rule similarity if needed.
-            if (!$matched) {
+            if (!$matched && $similarity !== null) {
                 $text = $detection['text'] ?? $detection['label'] ?? '';
                 if ($text !== '') {
-                    if ($similarity === null) {
-                        $similarity = JudiSimilarityService::fromConfig();
-                    }
                     $result = $similarity->match($text);
-                    $rule = DetectionRule::firstOrCreate(
-                        ['name' => 'Judi Online (Similarity)'],
-                        ['severity' => 'high', 'status' => 'active', 'rule_config' => ['matcher' => 'similarity']]
-                    );
-                    $judiRule = $rule;
+                    $judiRule ??= DetectionRule::where('rule_config->matcher', 'similarity')
+                        ->where('status', 'active')->first()
+                        ?? DetectionRule::firstOrCreate(
+                            ['name' => 'Judi Online (Similarity)'],
+                            ['severity' => 'high', 'status' => 'active', 'rule_config' => ['matcher' => 'similarity', 'threshold' => 0.35]]
+                        );
                     if ($result !== null) {
                         VisualFinding::create([
                             'assessment_id' => $this->assessment->id,

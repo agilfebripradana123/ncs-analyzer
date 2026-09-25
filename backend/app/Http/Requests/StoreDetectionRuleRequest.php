@@ -16,6 +16,10 @@ class StoreDetectionRuleRequest extends FormRequest
         return [
             'name' => 'required|string',
             'rule_config' => 'required|array',
+            'rule_config.matcher' => 'required|in:keyword,similarity',
+            'rule_config.keywords' => 'required_if:rule_config.matcher,keyword|array|min:1',
+            'rule_config.keywords.*' => 'required|string|min:1',
+            'rule_config.threshold' => 'required_if:rule_config.matcher,similarity|numeric|min:0|max:1',
             'severity' => 'required|in:low,medium,high,critical',
         ];
     }

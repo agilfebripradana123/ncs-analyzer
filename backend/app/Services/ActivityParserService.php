@@ -43,12 +43,16 @@ class ActivityParserService
             if (!$matched) {
                 $text = $this->extractWebText($entry);
                 if ($text !== null) {
-                    $result = JudiSimilarityService::fromConfig()->match($text);
-                    if ($result !== null) {
+                    $rule = DetectionRule::where('rule_config->matcher', 'similarity')
+                        ->where('status', 'active')->first();
+                    if (!$rule) {
                         $rule = DetectionRule::firstOrCreate(
                             ['name' => 'Judi Online (Similarity)'],
                             ['severity' => 'high', 'status' => 'active', 'rule_config' => ['matcher' => 'similarity']]
                         );
+                    }
+                    $result = (new JudiSimilarityService((float) ($rule->rule_config['threshold'] ?? 0.35)))->match($text);
+                    if ($result !== null) {
                         LogFinding::create([
                             'assessment_id' => $assessmentId,
                             'rule_id' => $rule->id,

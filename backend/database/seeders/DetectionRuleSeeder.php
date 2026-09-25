@@ -13,7 +13,7 @@ class DetectionRuleSeeder extends Seeder
             [
                 'name' => 'Judi Online',
                 'severity' => 'high',
-                'rule_config' => ['keywords' => ['slot', 'gacor', 'maxwin', 'scatter', 'togel', 'toto', 'deposit', 'wd', 'rtp', 'chip', 'saldo', 'link alternatif', 'pola gacor', 'jam gacor', 'pragmatic', 'olympus', 'bonanza', 'zeus', 'joker', 'habanero', 'spaceman', 'starlight princess', 'new member', 'bonus', 'jackpot', 'pg soft', 'live casino', 'baccarat', 'blackjack', 'sweet bonanza', 'gates of olympus', 'starlight', 'wild west', 'mahjong ways', 'fortune', 'sugar rush', 'x500', 'x1000', 'free spin', 'bocoran', 'paus', 'sultan', 'cuan', 'mantap', 'daftar', 'login', 'withdraw', 'cashback', 'turnover', 'minimal bet', 'modal kecil', 'untung besar', 'anti rungkad', 'main santuy', 'receh']],
+                'rule_config' => ['matcher' => 'keyword', 'keywords' => ['slot', 'gacor', 'maxwin', 'scatter', 'togel', 'toto', 'deposit', 'wd', 'rtp', 'chip', 'saldo', 'link alternatif', 'pola gacor', 'jam gacor', 'pragmatic', 'olympus', 'bonanza', 'zeus', 'joker', 'habanero', 'spaceman', 'starlight princess', 'new member', 'bonus', 'jackpot', 'pg soft', 'live casino', 'baccarat', 'blackjack', 'sweet bonanza', 'gates of olympus', 'starlight', 'wild west', 'mahjong ways', 'fortune', 'sugar rush', 'x500', 'x1000', 'free spin', 'bocoran', 'paus', 'sultan', 'cuan', 'mantap', 'daftar', 'login', 'withdraw', 'cashback', 'turnover', 'minimal bet', 'modal kecil', 'untung besar', 'anti rungkad', 'main santuy', 'receh']],
             ],
             [
                 'name' => 'Judi Online (Similarity)',
@@ -23,7 +23,7 @@ class DetectionRuleSeeder extends Seeder
         ];
 
         foreach ($rules as $rule) {
-            DetectionRule::updateOrCreate(
+            DetectionRule::firstOrCreate(
                 ['name' => $rule['name']],
                 array_merge($rule, ['status' => 'active'])
             );
