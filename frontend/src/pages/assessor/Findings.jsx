@@ -45,7 +45,7 @@ export default function Findings() {
   }, [])
 
   const columns = [
-    { key: 'type', header: 'Tipe', sortable: true },
+    { key: 'type', header: 'Aturan', sortable: true },
     { key: 'description', header: 'Deskripsi', sortable: false },
     {
       key: 'severity',

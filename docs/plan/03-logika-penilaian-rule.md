@@ -27,7 +27,7 @@ Kedua jalur pakai pola sama: **keyword dulu → similarity fallback**.
 ```
 Detection masuk
   │
-  ├─ Loop semua rule aktif (sesuai tipe: visual/log)
+  ├─ Loop semua rule aktif (universal, tanpa filter tipe)
   │    └─ Cek keywords di rule_config
   │         ├─ Match → buat Finding (matcher: "keyword")
   │         └─ Tidak match → lanjut rule berikutnya
@@ -54,14 +54,12 @@ JSON-encode seluruh entry → cek substring terhadap `rule_config.keywords` dan 
 
 ## Daftar Rule Aktif
 
-| Nama | Tipe | Matcher | Keparahan | Keterangan |
-|------|------|---------|-----------|------------|
-| Remote Access App | visual | keyword | critical | teamvie, anydes, remote |
-| GPS Location App | visual | keyword | medium | gps, fake |
-| Suspicious Keyword | log | keyword | medium | password, credential |
-| Judi Online | visual | keyword | high | 51 keyword judi |
-| Judi Online (Similarity) | visual | similarity | high | TF-IDF fallback, threshold 0.35 |
-| Judi Online (Log) | log | similarity | high | TF-IDF fallback untuk URL/title |
+| Nama | Matcher | Keparahan | Keterangan |
+|------|---------|-----------|------------|
+| Judi Online | keyword | high | 51 keyword judi (visual + log) |
+| Judi Online (Similarity) | similarity | high | TF-IDF fallback, threshold 0.35, corpus 899 baris |
+
+> Semua rule universal — tidak dibedakan per tipe data (visual/log). Loop semua rule aktif untuk setiap entry.
 
 ## Perhitungan Risk Score
 
@@ -97,28 +95,24 @@ total_score   = visual_weight + log_weight
 
 Assessment dengan temuan:
 - 1x Judi Online keyword match (high) → bobot 7
-- 1x Judi Online similarity (high) → bobot 7
-- 1x Remote Access App (critical) → bobot 15
-- 1x Suspicious Keyword log (medium) → bobot 3
+- 1x Judi Online (Similarity) log (high) → bobot 7
 
 ```
-visual_weight = 7 + 7 + 15 = 29
-log_weight = 3
-total = 32 → level: critical
+visual_weight = 7
+log_weight = 7
+total = 14 → level: medium
 ```
 
 Detail disimpan di `calculation_data` JSON:
 ```json
 {
-  "visual_weight": 29,
-  "log_weight": 3,
+  "visual_weight": 7,
+  "log_weight": 7,
   "visual_details": [
-    {"rule": "Judi Online", "severity": "high", "weight": 7},
-    {"rule": "Judi Online (Similarity)", "severity": "high", "weight": 7},
-    {"rule": "Remote Access App", "severity": "critical", "weight": 15}
+    {"rule": "Judi Online", "severity": "high", "weight": 7}
   ],
   "log_details": [
-    {"rule": "Suspicious Keyword", "severity": "medium", "weight": 3}
+    {"rule": "Judi Online (Similarity)", "severity": "high", "weight": 7}
   ]
 }
 ```
@@ -141,5 +135,6 @@ Detail disimpan di `calculation_data` JSON:
 
 - `firstOrCreate` dipakai untuk rule similarity agar tidak error kalau seeder belum jalan. Seeder pakai `updateOrCreate` supaya keyword update propagate.
 - Similarity cache statis di `JudiSimilarityService::$cache` — hidup selama proses/job berjalan. Tidak persist antar request.
-- Kolom `pattern` dan `risk_weight` sudah dihapus dari frontend Rules karena tidak ada di model/migration.
+- Kolom `pattern`, `risk_weight`, dan `type` sudah dihapus dari model/migration/frontend. Rule universal — matcher ditentukan `rule_config` (`keywords` vs `matcher: similarity`).
+- Rule non-judi (Remote Access App, GPS Location App, Suspicious Keyword) sudah dihapus dari seeder + DB. Fokus deteksi: judi online.
 - `destroy` di `DetectionRuleController` soft-delete (set status=inactive), bukan hard delete, karena FK constraint ke findings.

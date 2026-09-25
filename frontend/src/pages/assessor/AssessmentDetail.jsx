@@ -271,12 +271,12 @@ export default function AssessmentDetail() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <LiveScreen wsUrl={wsUrl} />
                 <div>
-                  <h3 className="font-semibold text-text-primary mb-3">Visual Findings</h3>
-                  {findings.filter(f => f.rule?.type === 'visual').length === 0 ? (
-                    <p className="text-sm text-text-secondary">No visual findings yet</p>
+                  <h3 className="font-semibold text-text-primary mb-3">Temuan Terkini</h3>
+                  {findings.length === 0 ? (
+                    <p className="text-sm text-text-secondary">No findings yet</p>
                   ) : (
                     <div className="space-y-2 max-h-[32rem] overflow-y-auto">
-                      {findings.filter(f => f.rule?.type === 'visual').map(f => <FindingCard key={f.id} finding={f} />)}
+                      {findings.map(f => <FindingCard key={f.id} finding={f} />)}
                     </div>
                   )}
                 </div>

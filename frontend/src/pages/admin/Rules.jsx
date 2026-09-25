@@ -21,11 +21,6 @@ const SEVERITY_OPTIONS = [
   { value: 'critical', label: 'Kritis' },
 ]
 
-const TYPE_OPTIONS = [
-  { value: 'visual', label: 'Visual' },
-  { value: 'log', label: 'Log' },
-]
-
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Aktif' },
   { value: 'inactive', label: 'Tidak Aktif' },
@@ -45,7 +40,6 @@ export default function Rules() {
 
   const [form, setForm] = useState({
     name: '',
-    type: '',
     severity: '',
     status: 'active',
   })
@@ -87,7 +81,7 @@ export default function Rules() {
 
   const openCreate = () => {
     setEditData(null)
-    setForm({ name: '', type: '', severity: '', status: 'active' })
+    setForm({ name: '', severity: '', status: 'active' })
     setEditModal(true)
   }
 
@@ -95,7 +89,6 @@ export default function Rules() {
     setEditData(rule)
     setForm({
       name: rule.name,
-      type: rule.type,
       severity: rule.severity,
       status: rule.status,
     })
@@ -144,7 +137,6 @@ export default function Rules() {
 
   const columns = [
     { key: 'name', header: 'Nama Aturan' },
-    { key: 'type', header: 'Tipe' },
     {
       key: 'severity',
       header: 'Tingkat Keparahan',
@@ -231,13 +223,6 @@ export default function Rules() {
             label="Nama"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-          />
-          <Select
-            label="Tipe"
-            options={TYPE_OPTIONS}
-            value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value })}
             required
           />
           <Select

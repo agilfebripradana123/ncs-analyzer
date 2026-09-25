@@ -57,8 +57,8 @@ class DummyDataSeeder extends Seeder
             'ended_at' => now()->subMinutes(30),
         ]);
 
-        $ruleRemote = DetectionRule::where('name', 'Remote Access App')->first();
-        $ruleSuspicious = DetectionRule::where('name', 'Suspicious Keyword')->first();
+        $ruleJudi = DetectionRule::where('name', 'Judi Online')->first();
+        $ruleSimilarity = DetectionRule::where('name', 'Judi Online (Similarity)')->first();
 
         foreach (['web', 'application', 'file', 'web', 'application'] as $i => $type) {
             ActivityLog::create([
@@ -70,22 +70,22 @@ class DummyDataSeeder extends Seeder
         }
 
         VisualFinding::create([
-            'assessment_id' => $a1->id, 'rule_id' => $ruleRemote->id, 'type' => 'application',
-            'description' => 'Aplikasi tidak sah terdeteksi: TeamViewer',
-            'evidence' => ['app' => 'TeamViewer', 'confidence' => 0.95],
-            'severity' => 'critical', 'detected_at' => now()->subMinutes(60),
+            'assessment_id' => $a1->id, 'rule_id' => $ruleJudi->id, 'type' => 'application',
+            'description' => 'Situs judi online terdeteksi: Slot Olympus',
+            'evidence' => ['app' => 'slot olympus', 'confidence' => 0.95],
+            'severity' => 'high', 'detected_at' => now()->subMinutes(60),
         ]);
         VisualFinding::create([
-            'assessment_id' => $a1->id, 'rule_id' => $ruleRemote->id, 'type' => 'application',
-            'description' => 'Aplikasi tidak sah terdeteksi: AnyDesk',
-            'evidence' => ['app' => 'AnyDesk', 'confidence' => 0.89],
+            'assessment_id' => $a1->id, 'rule_id' => $ruleJudi->id, 'type' => 'application',
+            'description' => 'Aktivitas judi online terdeteksi: Teks Maxwin',
+            'evidence' => ['app' => 'maxwin', 'confidence' => 0.89],
             'severity' => 'high', 'detected_at' => now()->subMinutes(50),
         ]);
         LogFinding::create([
-            'assessment_id' => $a1->id, 'rule_id' => $ruleSuspicious->id, 'type' => 'keyword',
-            'description' => 'Kata kunci mencurigakan ditemukan pada log',
-            'evidence' => ['keyword' => 'password', 'context' => 'login attempt'],
-            'severity' => 'medium', 'detected_at' => now()->subMinutes(30),
+            'assessment_id' => $a1->id, 'rule_id' => $ruleJudi->id, 'type' => 'keyword',
+            'description' => 'Akses situs judi: deposit slot',
+            'evidence' => ['keyword' => 'deposit', 'context' => 'login attempt'],
+            'severity' => 'high', 'detected_at' => now()->subMinutes(30),
         ]);
 
         RiskScore::create([
@@ -136,19 +136,19 @@ class DummyDataSeeder extends Seeder
         VisualFinding::firstOrCreate(
             ['assessment_id' => $a2->id, 'type' => 'application'],
             [
-                'rule_id' => $ruleRemote->id,
-                'description' => 'TimViewer terdeteksi sesi aktif',
-                'evidence' => ['app' => 'TeamViewer', 'confidence' => 0.72],
-                'severity' => 'medium', 'detected_at' => now()->subMinutes(3),
+                'rule_id' => $ruleJudi->id,
+                'description' => 'Akses situs judi terdeteksi',
+                'evidence' => ['app' => 'game slot', 'confidence' => 0.72],
+                'severity' => 'high', 'detected_at' => now()->subMinutes(3),
             ]
         );
         LogFinding::firstOrCreate(
             ['assessment_id' => $a2->id, 'type' => 'keyword'],
             [
-                'rule_id' => $ruleSuspicious->id,
-                'description' => 'Kata kunci credential terdeteksi',
-                'evidence' => ['keyword' => 'credential', 'context' => 'api call'],
-                'severity' => 'low', 'detected_at' => now()->subMinutes(2),
+                'rule_id' => $ruleJudi->id,
+                'description' => 'Aktivitas judi online terdeteksi',
+                'evidence' => ['keyword' => 'togel', 'context' => 'browsing'],
+                'severity' => 'high', 'detected_at' => now()->subMinutes(2),
             ]
         );
 

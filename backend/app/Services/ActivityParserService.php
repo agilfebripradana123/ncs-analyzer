@@ -46,13 +46,13 @@ class ActivityParserService
                     $result = JudiSimilarityService::fromConfig()->match($text);
                     if ($result !== null) {
                         $rule = DetectionRule::firstOrCreate(
-                            ['name' => 'Judi Online (Log)'],
-                            ['type' => 'log', 'severity' => 'high', 'status' => 'active', 'rule_config' => ['matcher' => 'similarity']]
+                            ['name' => 'Judi Online (Similarity)'],
+                            ['severity' => 'high', 'status' => 'active', 'rule_config' => ['matcher' => 'similarity']]
                         );
                         LogFinding::create([
                             'assessment_id' => $assessmentId,
                             'rule_id' => $rule->id,
-                            'type' => 'Judi Online (Log)',
+                            'type' => 'Judi Online (Similarity)',
                             'description' => 'Detected: Judi Online (similarity: '.round($result['score'], 3).')',
                             'evidence' => [
                                 'activity_log_id' => $log->id, 'data' => $entry,

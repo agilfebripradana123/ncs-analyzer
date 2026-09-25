@@ -20,25 +20,25 @@ class ReportTest extends TestCase
         $assessment = Assessment::factory()->create(['assessor_id' => $assessor->id, 'status' => 'active']);
 
         $visualRule = DetectionRule::create([
-            'name' => 'Visual Rule', 'type' => 'visual', 'rule_config' => ['keywords' => ['x']],
+            'name' => 'Judi Online', 'rule_config' => ['keywords' => ['slot']],
             'severity' => 'critical', 'status' => 'active',
         ]);
         $logRule = DetectionRule::create([
-            'name' => 'Log Rule', 'type' => 'log', 'rule_config' => ['domains' => ['evil.com']],
+            'name' => 'Judi Online (Similarity)', 'rule_config' => ['matcher' => 'similarity'],
             'severity' => 'high', 'status' => 'active',
         ]);
 
         foreach ($visualSev as $sev) {
             VisualFinding::create([
-                'assessment_id' => $assessment->id, 'rule_id' => $visualRule->id, 'type' => 'Visual Rule',
-                'description' => 'Detected visual', 'evidence' => ['detection' => ['label' => 'x']],
+                'assessment_id' => $assessment->id, 'rule_id' => $visualRule->id, 'type' => 'Judi Online',
+                'description' => 'Detected slot', 'evidence' => ['detection' => ['label' => 'slot']],
                 'severity' => $sev, 'detected_at' => now(),
             ]);
         }
         foreach ($logSev as $sev) {
             LogFinding::create([
-                'assessment_id' => $assessment->id, 'rule_id' => $logRule->id, 'type' => 'Log Rule',
-                'description' => 'Visited evil.com', 'evidence' => ['data' => ['url' => 'http://evil.com']],
+                'assessment_id' => $assessment->id, 'rule_id' => $logRule->id, 'type' => 'Judi Online (Similarity)',
+                'description' => 'Detected judi similarity', 'evidence' => ['data' => ['url' => 'http://judi.com']],
                 'severity' => $sev, 'detected_at' => now(),
             ]);
         }

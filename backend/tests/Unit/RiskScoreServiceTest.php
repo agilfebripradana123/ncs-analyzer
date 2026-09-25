@@ -20,17 +20,15 @@ class RiskScoreServiceTest extends TestCase
         $assessment = Assessment::factory()->create(['status' => 'active']);
 
         $visualRule = DetectionRule::create([
-            'name' => 'Unauthorized App',
-            'type' => 'visual',
-            'rule_config' => ['keywords' => ['TeamViewer']],
+            'name' => 'Judi Online',
+            'rule_config' => ['keywords' => ['slot', 'gacor']],
             'severity' => 'critical',
             'status' => 'active',
         ]);
 
         $logRule = DetectionRule::create([
-            'name' => 'Blocked Domain',
-            'type' => 'log',
-            'rule_config' => ['domains' => ['evil.com']],
+            'name' => 'Judi Online (Similarity)',
+            'rule_config' => ['matcher' => 'similarity'],
             'severity' => 'high',
             'status' => 'active',
         ]);
@@ -38,9 +36,9 @@ class RiskScoreServiceTest extends TestCase
         VisualFinding::create([
             'assessment_id' => $assessment->id,
             'rule_id' => $visualRule->id,
-            'type' => 'Unauthorized App',
-            'description' => 'Detected TeamViewer',
-            'evidence' => ['detection' => ['label' => 'TeamViewer']],
+            'type' => 'Judi Online',
+            'description' => 'Detected slot',
+            'evidence' => ['detection' => ['label' => 'slot']],
             'severity' => 'critical',
             'detected_at' => now(),
         ]);
@@ -48,9 +46,9 @@ class RiskScoreServiceTest extends TestCase
         LogFinding::create([
             'assessment_id' => $assessment->id,
             'rule_id' => $logRule->id,
-            'type' => 'Blocked Domain',
-            'description' => 'Visited evil.com',
-            'evidence' => ['data' => ['url' => 'http://evil.com']],
+            'type' => 'Judi Online (Similarity)',
+            'description' => 'Detected judi similarity',
+            'evidence' => ['data' => ['url' => 'http://judi-site.com']],
             'severity' => 'high',
             'detected_at' => now(),
         ]);
@@ -67,11 +65,11 @@ class RiskScoreServiceTest extends TestCase
 
         // Test rule matcher
         $parser = new ActivityParserService();
-        $matchingEntry = ['type' => 'network', 'url' => 'http://evil.com/page'];
+        $matchingEntry = ['type' => 'network', 'url' => 'http://game.com/slot-gacor'];
         $nonMatchingEntry = ['type' => 'network', 'url' => 'http://safe.com'];
 
-        $this->assertTrue($parser->matches($logRule, $matchingEntry));
-        $this->assertFalse($parser->matches($logRule, $nonMatchingEntry));
+        $this->assertTrue($parser->matches($visualRule, $matchingEntry));
+        $this->assertFalse($parser->matches($visualRule, $nonMatchingEntry));
 
         // Test level thresholds
         $this->assertEquals('low', $service->level(3));

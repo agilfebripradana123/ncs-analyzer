@@ -59,7 +59,7 @@ class ProcessFrameDetections implements ShouldQueue
                     $result = $similarity->match($text);
                     $rule = DetectionRule::firstOrCreate(
                         ['name' => 'Judi Online (Similarity)'],
-                        ['type' => 'visual', 'severity' => 'high', 'status' => 'active', 'rule_config' => ['matcher' => 'similarity']]
+                        ['severity' => 'high', 'status' => 'active', 'rule_config' => ['matcher' => 'similarity']]
                     );
                     $judiRule = $rule;
                     if ($result !== null) {
