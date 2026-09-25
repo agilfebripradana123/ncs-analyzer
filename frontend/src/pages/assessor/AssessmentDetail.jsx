@@ -144,7 +144,7 @@ export default function AssessmentDetail() {
       const { data } = await api.post(`/assessor/assessments/${id}/agent/token`)
       const { session_id, agent_token } = data.data
       setAgentCmd({ session_id, agent_token })
-      await navigator.clipboard.writeText(`python agent.py --session-id ${session_id} --token ${agent_token}`)
+      await navigator.clipboard.writeText(`python agent.py --session-id ${session_id} --token "${agent_token}"`)
       toast.success('Command disalin ke clipboard')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Gagal generate agent token')
