@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, RefreshCw } from 'lucide-react'
+import { ArrowLeft, QrCode, RefreshCw } from 'lucide-react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
@@ -14,6 +14,7 @@ import { useDeviceStatus } from '../../hooks/useDeviceStatus'
 import RiskScoreCard from '../../components/RiskScoreCard'
 import LoadingState from '../../components/LoadingState'
 import EmptyState from '../../components/EmptyState'
+import { QRCodeSVG } from 'qrcode.react'
 
 
 export default function AssessmentDetail() {
@@ -22,7 +23,7 @@ export default function AssessmentDetail() {
   const [assessment, setAssessment] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeTab, setActiveTab] = useState('layer1')
+  const [activeTab, setActiveTab] = useState('konsen')
   const [findings, setFindings] = useState([])
   const [visualFindings, setVisualFindings] = useState([])
   const [logFindings, setLogFindings] = useState([])
@@ -204,11 +205,18 @@ export default function AssessmentDetail() {
 
   const a = assessment
   const status = a.status
+  const statusLabel = {
+    pending: 'Pending',
+    consented: 'Disetujui',
+    cancelled: 'Ditolak',
+    draft: 'Draft',
+  }
   const canStart = status === 'consented'
   const canComplete = ['active', 'processing'].includes(status)
   const canCalculate = ['active', 'processing'].includes(status) && !riskScore
 
   const tabs = [
+    { id: 'konsen', label: 'Persetujuan' },
     { id: 'layer1', label: 'Layer 1' },
     { id: 'layer2', label: 'Layer 2' },
     { id: 'findings', label: 'Temuan' },
@@ -279,27 +287,36 @@ export default function AssessmentDetail() {
           <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
         </div>
         <div className="p-4 md:p-6">
-          {activeTab === 'overview' && (
+          {activeTab === 'konsen' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
               <div>
-                <h3 className="font-semibold text-text-primary mb-3">Informasi Penilaian</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between"><span className="text-text-secondary">Kode</span><span className="font-medium text-text-primary">{a.assessment_code || a.id}</span></div>
-                  <div className="flex justify-between"><span className="text-text-secondary">Status</span><StatusBadge status={status} /></div>
-                  <div className="flex justify-between"><span className="text-text-secondary">Dibuat</span><span className="text-text-primary">{new Date(a.created_at).toLocaleString('id-ID')}</span></div>
+                <h3 className="font-semibold text-text-primary mb-3">Consent Status</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between"><span className="text-text-secondary">Consent</span><StatusBadge status={a.consent?.status || 'pending_consent'} /></div>
+                  <div className="flex justify-between"><span className="text-text-secondary">Status Sesi</span><span className="text-text-primary">{a.session?.status || '-'}</span></div>
+                  <div className="flex justify-between"><span className="text-text-secondary">Status Assessment</span><StatusBadge status={status} /></div>
                 </div>
+                {a.session?.consent_token && (
+                  <div className="mt-4 p-3 bg-surface-secondary rounded-md border border-border text-xs break-all text-text-secondary">
+                    Link persetujuan: <a className="text-primary underline" href={`${window.location.origin}/consent/${a.session.consent_token}`} target="_blank" rel="noreferrer">{`${window.location.origin}/consent/${a.session.consent_token}`}</a>
+                  </div>
+                )}
               </div>
               <div>
-                <h3 className="font-semibold text-text-primary mb-3">Informasi Sesi</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between"><span className="text-text-secondary">Status</span><span className="text-text-primary">{a.session?.status || '-'}</span></div>
-                  <div className="flex justify-between"><span className="text-text-secondary">Persetujuan</span><span className="text-text-primary">{a.consent?.status || '-'}</span></div>
-                </div>
+                {a.session?.consent_token ? (
+                  <div className="p-4 bg-surface-secondary rounded-md border border-border flex flex-col items-center gap-3 max-w-xs">
+                    <QrCode size={20} className="text-text-secondary" />
+                    <QRCodeSVG value={`${window.location.origin}/consent/${a.session.consent_token}`} size={180} />
+                    <p className="text-xs text-text-secondary">Scan QR untuk persetujuan karyawan</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-text-secondary">Belum ada token consent</p>
+                )}
               </div>
             </div>
           )}
 
-          {activeTab === 'live' && (
+          {activeTab === 'layer1' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <DeviceStatus status={deviceStatus} lastSeen={lastSeen} />
@@ -311,13 +328,33 @@ export default function AssessmentDetail() {
                 <LiveScreen wsUrl={wsUrl} />
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-text-primary">Aktivitas Layer 2</h3>
-                    <Button size="sm" variant="secondary" onClick={handleReprocess} loading={reprocessing}>
-                      <RefreshCw size={14} className="mr-1" /> Analisis Ulang
-                    </Button>
+                    <h3 className="font-semibold text-text-primary">Temuan Layer 1</h3>
+                    <span className="text-xs text-text-secondary">{visualFindings.length} temuan</span>
                   </div>
+                  {visualFindings.length === 0 ? (
+                    <p className="text-sm text-text-secondary">Belum ada temuan</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[32rem] overflow-y-auto">
+                      {visualFindings.map(f => <FindingCard key={f.id} finding={f} />)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'layer2' && (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <Button size="sm" variant="secondary" onClick={handleReprocess} loading={reprocessing}>
+                  <RefreshCw size={14} className="mr-1" /> Analisis Ulang
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold text-text-primary mb-3">Aktivitas Masuk</h3>
                   {activities.length === 0 ? (
-                    <p className="text-sm text-text-secondary">Belum ada data aktivitas</p>
+                    <p className="text-sm text-text-secondary">Belum ada data aktivitas. Upload via halaman consent karyawan.</p>
                   ) : (
                     <div className="space-y-2 max-h-[32rem] overflow-y-auto">
                       {activities.map(a => (
@@ -331,6 +368,19 @@ export default function AssessmentDetail() {
                           </p>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-text-primary">Temuan Layer 2</h3>
+                    <span className="text-xs text-text-secondary">{logFindings.length} temuan</span>
+                  </div>
+                  {logFindings.length === 0 ? (
+                    <p className="text-sm text-text-secondary">Belum ada temuan</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[32rem] overflow-y-auto">
+                      {logFindings.map(f => <FindingCard key={f.id} finding={f} />)}
                     </div>
                   )}
                 </div>
@@ -387,6 +437,13 @@ export default function AssessmentDetail() {
                         Generate Command
                       </Button>
                     )}
+                  </div>
+                )}
+                {session.consent_token && (
+                  <div className="mt-4 p-4 md:p-6 bg-surface-secondary rounded-md border border-border flex flex-col items-center gap-3 max-w-xs">
+                    <QRCode size={20} className="text-text-secondary" />
+                    <QRCodeSVG value={`${window.location.origin}/consent/${session.consent_token}`} size={160} />
+                    <p className="text-xs text-text-secondary">Pindai untuk melanjutkan</p>
                   </div>
                 )}
               </div>
