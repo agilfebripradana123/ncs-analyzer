@@ -55,6 +55,21 @@ class JudiSimilarityServiceTest extends TestCase
         $this->assertNull($matcher->match('slot'));
     }
 
+    public function test_youtube_watch_titles_do_not_match(): void
+    {
+        $this->seed(\Database\Seeders\JudiDatasetSeeder::class);
+        $matcher = JudiSimilarityService::fromConfig();
+
+        // False positives from real Takeout data: YouTube watch titles share
+        // generic words ("main", "mau", "kalah", "belajar", "suka") with corpus
+        $this->assertNull($matcher->match('Menonton Aku Mau Udahan Main Ini! [Eat Simulator] #shorts'));
+        $this->assertNull($matcher->match('Menonton By one Sama Adek Kalah Kick Dari Kk'));
+        $this->assertNull($matcher->match('Menonton JADI JEMBATAN UNTUK MENOLONG ORANG LAIN #dubing #viral'));
+        $this->assertNull($matcher->match('Menonton Di FF ada Motor Ghost Rider ga? GTA vs FF #freefire #gtasa'));
+        $this->assertNull($matcher->match('Menonton Habib Syech Bin Abdul Qodir Assegaf - The Best Shalawat'));
+        $this->assertNull($matcher->match('Menonton KETIKA CHAINSAW MAN BELAJAR UNTUK LOMPAT TINGGI #shorts'));
+    }
+
     public function test_url_only_text_does_not_match(): void
     {
         $this->seed(\Database\Seeders\JudiDatasetSeeder::class);

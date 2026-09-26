@@ -43,16 +43,29 @@ class ActivityParserService
     private function detect(int $assessmentId, int $logId, array $entry): int
     {
         $findingCount = 0;
-        $haystack = strtolower(json_encode($entry));
+        // Only match against user-visible text fields, not full JSON dump.
+        // Full JSON includes nested keys/values that cause substring false positives
+        // (e.g. "main" inside a YouTube title matching keyword "main").
+        $title = strtolower($entry['title'] ?? '');
+        $url = strtolower($entry['url'] ?? $entry['titleUrl'] ?? '');
+        $text = trim($title . ' ' . $url);
 
         foreach (DetectionRule::where('status', 'active')->get() as $rule) {
-            if ($this->matches($rule, $haystack)) {
+            if (($rule->rule_config['matcher'] ?? 'keyword') !== 'keyword') {
+                continue;
+            }
+            $hitKw = $this->matchedKeywords($rule, $text);
+            if ($hitKw !== []) {
+                $reason = implode(', ', array_map(fn ($m) => "'$m'", array_slice($hitKw, 0, 5)));
                 LogFinding::create([
                     'assessment_id' => $assessmentId,
                     'rule_id' => $rule->id,
                     'type' => $rule->name,
-                    'description' => "Matched rule: {$rule->name}",
-                    'evidence' => ['activity_log_id' => $logId, 'data' => $entry, 'matcher' => 'keyword'],
+                    'description' => "Matched rule: {$rule->name} (keyword: {$reason})",
+                    'evidence' => [
+                        'activity_log_id' => $logId, 'data' => $entry,
+                        'matcher' => 'keyword', 'matched_keywords' => $hitKw,
+                    ],
                     'severity' => $rule->severity,
                     'detected_at' => now(),
                 ]);
@@ -98,28 +111,35 @@ class ActivityParserService
 
     public function matches(DetectionRule $rule, string|array $haystack): bool
     {
+        return $this->matchedKeywords($rule, $haystack) !== [];
+    }
+
+    /** @return list<string> matched keywords/domains, empty = no match */
+    public function matchedKeywords(DetectionRule $rule, string|array $haystack): array
+    {
         if (is_array($haystack)) {
             $haystack = strtolower(json_encode($haystack));
         }
         $config = $rule->rule_config ?? [];
+        $hits = [];
 
-        if (!empty($config['keywords'])) {
-            foreach ($config['keywords'] as $kw) {
-                if (str_contains($haystack, strtolower($kw))) {
-                    return true;
-                }
+        foreach (($config['keywords'] ?? []) as $kw) {
+            if (str_contains($haystack, strtolower($kw))) {
+                $hits[] = $kw;
+                if (count($hits) >= 6) break;
             }
         }
 
-        if (!empty($config['domains'])) {
-            foreach ($config['domains'] as $domain) {
+        if (count($hits) < 6) {
+            foreach (($config['domains'] ?? []) as $domain) {
                 if (str_contains($haystack, strtolower($domain))) {
-                    return true;
+                    $hits[] = $domain;
+                    if (count($hits) >= 6) break;
                 }
             }
         }
 
-        return false;
+        return $hits;
     }
 
     /** Extract browsable text from log entry for similarity. null if nothing usable. */

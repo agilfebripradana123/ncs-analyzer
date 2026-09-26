@@ -39,23 +39,29 @@ class ProcessFrameDetections implements ShouldQueue
         foreach ($this->detections as $detection) {
             $matched = false;
             foreach ($rules as $rule) {
-                if ($this->matches($rule, $detection)) {
+                if (($rule->rule_config['matcher'] ?? 'keyword') !== 'keyword') {
+                    continue;
+                }
+                $hitKw = $this->matchedKeywords($rule, $detection);
+                if ($hitKw !== []) {
                     $text = trim(mb_strtolower($detection['text'] ?? $detection['label'] ?? ''));
                     // temporal dedup: same rule + same analyzed text within 60s
                     if ($this->recentFinding($rule->id, $text)) {
                         $matched = true;
                         continue;
                     }
+                    $reason = implode(', ', array_map(fn ($m) => "'$m'", array_slice($hitKw, 0, 5)));
                     VisualFinding::create([
                         'assessment_id' => $this->assessment->id,
                         'rule_id' => $rule->id,
                         'type' => $rule->name,
-                        'description' => "Detected: {$rule->name}",
+                        'description' => "Detected: {$rule->name} (keyword: {$reason})",
                         'evidence' => [
                             'frame_evidence_id' => $this->frameEvidenceId,
                             'detection' => $detection,
                             'analyzed_text' => $detection['text'] ?? $detection['label'] ?? '',
                             'matcher' => 'keyword',
+                            'matched_keywords' => $hitKw,
                         ],
                         'severity' => $rule->severity,
                         'detected_at' => now(),
@@ -116,24 +122,27 @@ class ProcessFrameDetections implements ShouldQueue
         ]);
     }
 
-    private function matches(DetectionRule $rule, array $detection): bool
+    /** @return list<string> matched keywords, empty = no match */
+    private function matchedKeywords(DetectionRule $rule, array $detection): array
     {
         $config = $rule->rule_config ?? [];
+        // Only match against OCR label/type/text — not full JSON dump which
+        // includes confidence scores, bounding boxes etc. causing false substring hits.
         $label = strtolower($detection['label'] ?? '');
         $type = strtolower($detection['type'] ?? '');
         $text = strtolower($detection['text'] ?? '');
-        $json = strtolower(json_encode($detection));
+        $searchable = $label . ' ' . $type . ' ' . $text;
+        $hits = [];
 
-        if (!empty($config['keywords'])) {
-            foreach ($config['keywords'] as $kw) {
-                $lk = strtolower($kw);
-                if (str_contains($label, $lk) || str_contains($type, $lk) || str_contains($text, $lk) || str_contains($json, $lk)) {
-                    return true;
-                }
+        foreach (($config['keywords'] ?? []) as $kw) {
+            $lk = strtolower($kw);
+            if (str_contains($searchable, $lk)) {
+                $hits[] = $kw;
+                if (count($hits) >= 6) break;
             }
         }
 
-        return false;
+        return $hits;
     }
 
     /** Skip if same rule + normalized analyzed_text already exists for this assessment within 60s. */

@@ -8,6 +8,7 @@ export default function FindingCard({ finding }) {
   const conf = isSimilarity ? (ev.confidence ?? null) : null
   const analyzedText = ev.analyzed_text ?? ev.detection?.text ?? ev.detection?.label
   const matchedCorpus = ev.matched_corpus
+  const matchedKw = ev.matched_keywords
   return (
     <div className="bg-surface border border-border rounded-md shadow-sm p-4 hover:border-primary/30 transition-colors">
       <div className="flex items-start justify-between mb-2">
@@ -20,6 +21,11 @@ export default function FindingCard({ finding }) {
       </div>
       {finding.description && (
         <p className="text-sm text-text-secondary mb-2">{finding.description}</p>
+      )}
+      {matchedKw?.length > 0 && !isSimilarity && (
+        <p className="text-xs text-text-secondary mb-2">
+          Kata kunci terdeteksi: {matchedKw.map(k => `'${k}'`).join(', ')}
+        </p>
       )}
       {analyzedText && (
         <p className="text-xs text-text-secondary bg-background border border-border rounded-md px-3 py-2 mb-2 break-words">
