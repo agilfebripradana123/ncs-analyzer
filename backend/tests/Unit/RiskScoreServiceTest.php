@@ -48,7 +48,7 @@ class RiskScoreServiceTest extends TestCase
             'rule_id' => $logRule->id,
             'type' => 'Judi Online (Similarity)',
             'description' => 'Detected judi similarity',
-            'evidence' => ['data' => ['url' => 'http://judi-site.com']],
+            'evidence' => ['matcher' => 'similarity', 'data' => ['url' => 'http://judi-site.com']],
             'severity' => 'high',
             'detected_at' => now(),
         ]);
@@ -56,12 +56,14 @@ class RiskScoreServiceTest extends TestCase
         $service = new RiskScoreService();
         $score = $service->calculate($assessment->fresh());
 
-        // critical=15 + high=7 = 22 → level "high"
+        // critical=15 + high=7 (similarity minimal 7) = 22; cap tidak berlaku di bawah 100
         $this->assertEquals(22, (int) $score->score);
         $this->assertEquals('high', $score->level);
         $this->assertArrayHasKey('visual_weight', $score->calculation_data);
         $this->assertEquals(15, $score->calculation_data['visual_weight']);
         $this->assertEquals(7, $score->calculation_data['log_weight']);
+        // similarity minimal bobot 7
+        $this->assertEquals(7, $score->calculation_data['log_details'][0]['weight']);
 
         // Test rule matcher
         $parser = new ActivityParserService();

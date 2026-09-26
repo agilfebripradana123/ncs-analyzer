@@ -447,7 +447,7 @@ export default function AssessmentDetail() {
               <RiskScoreCard
                 score={riskScore.score}
                 level={riskScore.level}
-                breakdown={{ visual: riskScore.visual_score, log: riskScore.log_score }}
+                breakdown={{ visual: riskScore.calculation_data?.visual_weight ?? riskScore.visual_score, log: riskScore.calculation_data?.log_weight ?? riskScore.log_score }}
               />
             ) : (
               <EmptyState message="Belum ada skor risiko" action={<Button onClick={() => handleAction('risk-score/calculate')}>Hitung</Button>} />
