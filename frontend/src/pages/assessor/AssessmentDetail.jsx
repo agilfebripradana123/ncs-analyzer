@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, QrCode } from 'lucide-react'
+import { ArrowLeft, RefreshCw } from 'lucide-react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
@@ -14,7 +14,7 @@ import { useDeviceStatus } from '../../hooks/useDeviceStatus'
 import RiskScoreCard from '../../components/RiskScoreCard'
 import LoadingState from '../../components/LoadingState'
 import EmptyState from '../../components/EmptyState'
-import { QRCodeSVG } from 'qrcode.react'
+
 
 export default function AssessmentDetail() {
   const { id } = useParams()
@@ -22,13 +22,17 @@ export default function AssessmentDetail() {
   const [assessment, setAssessment] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('layer1')
   const [findings, setFindings] = useState([])
+  const [visualFindings, setVisualFindings] = useState([])
+  const [logFindings, setLogFindings] = useState([])
   const [riskScore, setRiskScore] = useState(null)
   const [report, setReport] = useState(null)
   const [session, setSession] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [agentCmd, setAgentCmd] = useState(null)
+  const [activities, setActivities] = useState([])
+  const [reprocessing, setReprocessing] = useState(false)
   const { status: deviceStatus, lastSeen } = useDeviceStatus(session)
   const wsUrl = useMemo(
     () => (deviceStatus === 'connected' ? 'ws://127.0.0.1:8091' : null),
@@ -65,6 +69,20 @@ export default function AssessmentDetail() {
     } catch {}
   }
 
+  const fetchVisual = async () => {
+    try {
+      const { data } = await api.get(`/assessor/assessments/${id}/visual-findings`)
+      setVisualFindings(data.data || [])
+    } catch {}
+  }
+
+  const fetchLogFindings = async () => {
+    try {
+      const { data } = await api.get(`/assessor/assessments/${id}/log-findings`)
+      setLogFindings(data.data || [])
+    } catch {}
+  }
+
   const fetchRiskScore = async () => {
     try {
       const { data } = await api.get(`/assessor/assessments/${id}/risk-score`)
@@ -90,20 +108,47 @@ export default function AssessmentDetail() {
     } catch {}
   }
 
+  const fetchActivities = async () => {
+    try {
+      const { data } = await api.get(`/assessor/assessments/${id}/activities`)
+      setActivities(data.data || [])
+    } catch {}
+  }
+
+  const handleReprocess = async () => {
+    setReprocessing(true)
+    try {
+      const { data } = await api.post(`/assessor/assessments/${id}/activities/reprocess`)
+      toast.success(data.message)
+      fetchLogFindings()
+      fetchActivities()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal analisis ulang')
+    } finally {
+      setReprocessing(false)
+    }
+  }
+
   useEffect(() => { fetchDetail() }, [id])
   useEffect(() => {
     if (activeTab === 'findings') fetchFindings()
-    if (activeTab === 'live') { fetchFindings(); if (!session) fetchSession() }
+    if (activeTab === 'layer1') { fetchVisual(); if (!session) fetchSession() }
+    if (activeTab === 'layer2') { fetchLogFindings(); fetchActivities() }
     if (activeTab === 'risk') fetchRiskScore()
     if (activeTab === 'report') fetchReport()
     if (activeTab === 'session' && !session) fetchSession()
   }, [activeTab])
 
-  // Auto-refresh visual findings while on live tab
+  // Auto-refresh layer tabs
   useEffect(() => {
-    if (activeTab !== 'live') return
-    const t = setInterval(fetchFindings, 3000)
-    return () => clearInterval(t)
+    if (activeTab === 'layer1') {
+      const t = setInterval(fetchVisual, 3000)
+      return () => clearInterval(t)
+    }
+    if (activeTab === 'layer2') {
+      const t = setInterval(() => { fetchLogFindings(); fetchActivities() }, 3000)
+      return () => clearInterval(t)
+    }
   }, [activeTab])
 
   // Auto-refresh saat menunggu consent karyawan
@@ -164,8 +209,8 @@ export default function AssessmentDetail() {
   const canCalculate = ['active', 'processing'].includes(status) && !riskScore
 
   const tabs = [
-    { id: 'overview', label: 'Ikhtisar' },
-    { id: 'live', label: 'Live' },
+    { id: 'layer1', label: 'Layer 1' },
+    { id: 'layer2', label: 'Layer 2' },
     { id: 'findings', label: 'Temuan' },
     { id: 'session', label: 'Sesi' },
     { id: 'risk', label: 'Skor Risiko' },
@@ -250,12 +295,6 @@ export default function AssessmentDetail() {
                   <div className="flex justify-between"><span className="text-text-secondary">Status</span><span className="text-text-primary">{a.session?.status || '-'}</span></div>
                   <div className="flex justify-between"><span className="text-text-secondary">Persetujuan</span><span className="text-text-primary">{a.consent?.status || '-'}</span></div>
                 </div>
-                {a.session?.consent_token && (
-                  <div className="mt-4 p-4 bg-surface-secondary rounded-md border border-border flex flex-col items-center gap-3">
-                    <QRCodeSVG value={`${window.location.origin}/consent/${a.session.consent_token}`} size={140} />
-                    <p className="text-xs text-text-secondary">Scan QR untuk consent karyawan</p>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -271,12 +310,27 @@ export default function AssessmentDetail() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <LiveScreen wsUrl={wsUrl} />
                 <div>
-                  <h3 className="font-semibold text-text-primary mb-3">Temuan Terkini</h3>
-                  {findings.length === 0 ? (
-                    <p className="text-sm text-text-secondary">No findings yet</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-text-primary">Aktivitas Layer 2</h3>
+                    <Button size="sm" variant="secondary" onClick={handleReprocess} loading={reprocessing}>
+                      <RefreshCw size={14} className="mr-1" /> Analisis Ulang
+                    </Button>
+                  </div>
+                  {activities.length === 0 ? (
+                    <p className="text-sm text-text-secondary">Belum ada data aktivitas</p>
                   ) : (
                     <div className="space-y-2 max-h-[32rem] overflow-y-auto">
-                      {findings.map(f => <FindingCard key={f.id} finding={f} />)}
+                      {activities.map(a => (
+                        <div key={a.id} className="p-3 bg-surface-secondary rounded-md border border-border text-xs">
+                          <div className="flex justify-between mb-1">
+                            <span className="font-medium text-text-primary">{a.activity_type}</span>
+                            <span className="text-text-secondary">{a.occurred_at ? new Date(a.occurred_at).toLocaleString('id-ID') : ''}</span>
+                          </div>
+                          <p className="text-text-secondary truncate">
+                            {a.activity_data?.title || a.activity_data?.header || JSON.stringify(a.activity_data).slice(0, 120)}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -333,13 +387,6 @@ export default function AssessmentDetail() {
                         Generate Command
                       </Button>
                     )}
-                  </div>
-                )}
-                {session.consent_token && (
-                  <div className="mt-4 p-4 md:p-6 bg-surface-secondary rounded-md border border-border flex flex-col items-center gap-3 max-w-xs">
-                    <QrCode size={20} className="text-text-secondary" />
-                    <QRCodeSVG value={`${window.location.origin}/consent/${session.consent_token}`} size={160} />
-                    <p className="text-xs text-text-secondary">Pindai untuk melanjutkan</p>
                   </div>
                 )}
               </div>

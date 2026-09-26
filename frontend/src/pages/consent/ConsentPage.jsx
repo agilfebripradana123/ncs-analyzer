@@ -14,7 +14,7 @@ export default function ConsentPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [agreed, setAgreed] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  const [submitting, setSubmitting] = useState(null)
 
   useEffect(() => {
     api
@@ -32,7 +32,7 @@ export default function ConsentPage() {
       toast.error('Anda harus membaca dan menyetujui persetujuan')
       return
     }
-    setSubmitting(true)
+    setSubmitting('approve')
     try {
       await api.post(`/consent/${token}/approve`)
       toast.success('Persetujuan diterima')
@@ -40,12 +40,12 @@ export default function ConsentPage() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Gagal menerima persetujuan')
     } finally {
-      setSubmitting(false)
+      setSubmitting(null)
     }
   }
 
   const handleDecline = async () => {
-    setSubmitting(true)
+    setSubmitting('decline')
     try {
       await api.post(`/consent/${token}/decline`)
       toast.success('Persetujuan ditolak')
@@ -53,7 +53,7 @@ export default function ConsentPage() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Gagal menolak persetujuan')
     } finally {
-      setSubmitting(false)
+      setSubmitting(null)
     }
   }
 
@@ -165,8 +165,8 @@ export default function ConsentPage() {
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
             onClick={handleApprove}
-            disabled={!agreed}
-            loading={submitting}
+            disabled={!agreed || submitting === 'decline'}
+            loading={submitting === 'approve'}
             className="flex-1"
           >
             Setuju & Lanjutkan
@@ -174,7 +174,8 @@ export default function ConsentPage() {
           <Button
             variant="secondary"
             onClick={handleDecline}
-            loading={submitting}
+            disabled={submitting === 'approve'}
+            loading={submitting === 'decline'}
             className="flex-1"
           >
             Tolak

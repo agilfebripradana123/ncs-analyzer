@@ -57,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('assessments/{assessment}/activity/upload', [ActivityController::class, 'upload']);
         Route::get('assessments/{assessment}/activities', [ActivityController::class, 'index']);
+        Route::post('assessments/{assessment}/activities/reprocess', [ActivityController::class, 'reprocess']);
 
         Route::get('assessments/{assessment}/findings', [FindingController::class, 'index']);
         Route::get('assessments/{assessment}/visual-findings', [FindingController::class, 'visual']);

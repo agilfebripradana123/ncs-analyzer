@@ -76,7 +76,7 @@ class ConsentController extends Controller
         $merged = [];
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $name = $zip->getNameIndex($i);
-            if (str_ends_with(strtolower($name), '.json')) {
+            if (str_ends_with(strtolower($name), '.json') && !str_contains($name, '/Google Play Store/')) {
                 $decoded = json_decode($zip->getFromIndex($i), true);
                 if (is_array($decoded)) {
                     $merged = array_merge($merged, $decoded);
