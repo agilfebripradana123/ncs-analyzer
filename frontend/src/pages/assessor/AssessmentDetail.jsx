@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, QrCode, RefreshCw } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import api from '../../api/axios'
 import toast from 'react-hot-toast'
 import Button from '../../components/Button'
@@ -14,7 +15,7 @@ import { useDeviceStatus } from '../../hooks/useDeviceStatus'
 import RiskScoreCard from '../../components/RiskScoreCard'
 import LoadingState from '../../components/LoadingState'
 import EmptyState from '../../components/EmptyState'
-import { QRCodeSVG } from 'qrcode.react'
+
 
 
 export default function AssessmentDetail() {
@@ -316,7 +317,7 @@ export default function AssessmentDetail() {
             </div>
           )}
 
-          {activeTab === 'layer1' && (
+{activeTab === 'layer1' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <DeviceStatus status={deviceStatus} lastSeen={lastSeen} />
@@ -324,6 +325,27 @@ export default function AssessmentDetail() {
                   Capture: {deviceStatus === 'connected' ? 'Active' : 'Inactive'}
                 </span>
               </div>
+              {['active', 'processing'].includes(status) && (
+                <div className="p-4 bg-surface-secondary rounded-md border border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-text-secondary uppercase tracking-wider">Capture Agent</p>
+                    {agentCmd ? (
+                      <Button size="sm" variant="secondary" onClick={() => navigator.clipboard.writeText(`python agent.py --session-id ${agentCmd.session_id} --token "${agentCmd.agent_token}"`)}>
+                        Salin Ulang
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={handleIssueAgentToken} loading={actionLoading}>
+                        Generate Command
+                      </Button>
+                    )}
+                  </div>
+                  {agentCmd && (
+                    <code className="block p-3 bg-surface rounded-md text-xs text-text-primary break-all select-all">
+                      python agent.py --session-id {agentCmd.session_id} --token "{agentCmd.agent_token}"
+                    </code>
+                  )}
+                </div>
+              )}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <LiveScreen wsUrl={wsUrl} />
                 <div>
@@ -413,39 +435,7 @@ export default function AssessmentDetail() {
                     <p className="text-sm text-text-primary">{session.ended_at ? new Date(session.ended_at).toLocaleString('id-ID') : '-'}</p>
                   </div>
                 </div>
-                {['active', 'processing'].includes(status) && (
-                  <div className="p-4 bg-surface-secondary rounded-md border border-border space-y-3">
-                    <div>
-                      <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">Jalankan Capture Agent</p>
-                      <p className="text-xs text-text-secondary">
-                        Jalankan command ini di mesin capture (folder capture-agent). Tanpa edit .env manual.
-                      </p>
-                    </div>
-                    {agentCmd ? (
-                      <>
-                        <code className="block p-3 bg-surface rounded-md text-xs text-text-primary break-all select-all">
-                          python agent.py --session-id {agentCmd.session_id} --token "{agentCmd.agent_token}"
-                        </code>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="secondary" onClick={() => navigator.clipboard.writeText(`python agent.py --session-id ${agentCmd.session_id} --token "${agentCmd.agent_token}"`)}>
-                            Salin Ulang
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <Button size="sm" onClick={handleIssueAgentToken} loading={actionLoading}>
-                        Generate Command
-                      </Button>
-                    )}
-                  </div>
-                )}
-                {session.consent_token && (
-                  <div className="mt-4 p-4 md:p-6 bg-surface-secondary rounded-md border border-border flex flex-col items-center gap-3 max-w-xs">
-                    <QRCode size={20} className="text-text-secondary" />
-                    <QRCodeSVG value={`${window.location.origin}/consent/${session.consent_token}`} size={160} />
-                    <p className="text-xs text-text-secondary">Pindai untuk melanjutkan</p>
-                  </div>
-                )}
+
               </div>
             ) : (
               <EmptyState message="Belum ada sesi" action={<Button onClick={() => handleAction('session')}>Buat Sesi</Button>} />

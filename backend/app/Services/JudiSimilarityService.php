@@ -148,6 +148,11 @@ class JudiSimilarityService
         if ($text === '') {
             return [];
         }
+        // Strip URLs entirely: youtube watch links etc. contribute only
+        // boilerplate tokens ("www", "com") that overlap any corpus row
+        // with a domain. Real judi domains arrive via keyword matcher,
+        // or as their own words in text after the URL is removed.
+        $text = preg_replace('#\b(?:https?://|www\.)\S+#iu', ' ', $text) ?: $text;
         $parts = preg_split('/[^\p{L}\p{N}]+/u', $text) ?: [];
         return array_values(array_filter(
             array_map('mb_strtolower', $parts),

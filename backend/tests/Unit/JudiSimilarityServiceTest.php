@@ -54,4 +54,14 @@ class JudiSimilarityServiceTest extends TestCase
         // Hanya 1 term yang sama ("slot") dengan corpus — kebetulan, bukan bukti
         $this->assertNull($matcher->match('slot'));
     }
+
+    public function test_url_only_text_does_not_match(): void
+    {
+        $this->seed(\Database\Seeders\JudiDatasetSeeder::class);
+        $matcher = JudiSimilarityService::fromConfig();
+
+        // YouTube activity entries: only action word + URL, no judi signal
+        $this->assertNull($matcher->match('Menyukai https://www.youtube.com/watch?v=nb2H_XiJaNk https://www.youtube.com/watch?v=nb2H_XiJaNk'));
+        $this->assertNull($matcher->match('Menonton https://www.youtube.com/watch?v=H2Y4e_miqDc'));
+    }
 }
